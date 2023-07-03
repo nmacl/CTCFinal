@@ -2,11 +2,13 @@ package org.macl.ctc.events;
 
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.Sound;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.EquipmentSlot;
+import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.Vector;
 import org.macl.ctc.Main;
 import org.macl.ctc.kits.*;
@@ -76,6 +78,18 @@ public class Interact extends DefaultListener {
                 Demolitionist d = (Demolitionist) k;
                 if(m == Material.CARROT_ON_A_STICK)
                     d.launchSheep();
+                if(m == Material.EGG)
+                    if(d.cooldowns.get("egg")) {
+                        event.setCancelled(true);
+                    } else {
+                        d.cooldowns.put("egg", true);
+                        new BukkitRunnable() {
+                            @Override
+                            public void run() {
+                                d.cooldowns.put("egg", false);
+                            }
+                        }.runTaskLater(main, 6*20L);
+                    }
             }
             if(k instanceof Builder) {
                 Builder b = (Builder) k;
@@ -100,6 +114,13 @@ public class Interact extends DefaultListener {
                     event.setCancelled(true);
                 }
             }
+            if(k instanceof Fisherman) {
+                Fisherman f = (Fisherman) k;
+                if(m == Material.PUFFERFISH)
+                    f.pufferfishBomb();
+                if(m == Material.COD)
+                    f.codSniper();
+            }
         }
 
     }
@@ -122,10 +143,18 @@ public class Interact extends DefaultListener {
 
                 p.setVelocity(new Vector(x,y,z));
             }
+
             if(m == Material.STONE_PRESSURE_PLATE) {
+                event.getClickedBlock().setType(Material.HEAVY_WEIGHTED_PRESSURE_PLATE);
                 event.setCancelled(true);
-                event.getClickedBlock().getLocation().getWorld().getBlockAt(event.getClickedBlock().getLocation()).setType(Material.AIR);
-                p.getLocation().getWorld().createExplosion(p.getLocation(), 7f);
+                p.getWorld().playSound(p.getLocation(), Sound.ENTITY_BLAZE_HURT, 10f, 3f);
+                new BukkitRunnable() {
+                    @Override
+                    public void run() {
+                        event.getClickedBlock().getLocation().getWorld().getBlockAt(event.getClickedBlock().getLocation()).setType(Material.AIR);
+                        p.getLocation().getWorld().createExplosion(event.getClickedBlock().getLocation(), 5f);
+                    }
+                }.runTaskLater(main, 20*2L);
             }
         }
     }

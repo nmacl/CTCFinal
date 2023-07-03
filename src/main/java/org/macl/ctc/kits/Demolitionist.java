@@ -38,6 +38,7 @@ public class Demolitionist extends Kit {
         new eggReplenish(this, p, main).runTaskTimer(main, 0L, 20L);
         giveWool();
         cooldowns.put("sheep", false);
+        cooldowns.put("egg", false);
     }
 
     public void launchSheep() {

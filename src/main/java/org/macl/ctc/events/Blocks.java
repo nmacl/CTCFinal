@@ -12,6 +12,7 @@ import org.bukkit.entity.Egg;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.block.*;
+import org.bukkit.event.entity.EntityExplodeEvent;
 import org.bukkit.event.entity.ProjectileHitEvent;
 import org.bukkit.event.world.WorldLoadEvent;
 import org.bukkit.event.world.WorldSaveEvent;
@@ -94,7 +95,8 @@ public class Blocks extends DefaultListener {
 
     @EventHandler
     public void blockExplode(BlockExplodeEvent event) {
-        Material m = event.getBlock().getType();
+        Block b = event.getBlock();
+        Material m = b.getType();
         if(main.restricted.contains(m))
             event.setCancelled(true);
         if(m == Material.RED_STAINED_GLASS_PANE || m == Material.BLUE_STAINED_GLASS_PANE)
@@ -118,12 +120,12 @@ public class Blocks extends DefaultListener {
     @EventHandler
     public void hit(ProjectileHitEvent event) {
         Block b = event.getHitBlock();
-        if(b.getType() == Material.RED_STAINED_GLASS_PANE || b.getType() == Material.BLUE_STAINED_GLASS)
-            event.setCancelled(true);
+        if(b.getType() == Material.RED_STAINED_GLASS_PANE || b.getType() == Material.BLUE_STAINED_GLASS_PANE)
+            return;
         if(event.getEntity().getShooter() instanceof Player && event.getEntity() instanceof Egg) {
             Player p = (Player) event.getEntity().getShooter();
             if(b != null)
-                b.getLocation().getWorld().createExplosion(b.getLocation().add(0, 2, 0), 2.1f);
+                b.getLocation().getWorld().createExplosion(b.getLocation().add(0, 1.3, 0), 2.55f);
 
         }
         if(event.getEntity().getShooter() instanceof Player && event.getEntity() instanceof Arrow) {

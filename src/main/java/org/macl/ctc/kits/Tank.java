@@ -257,7 +257,7 @@ public class Tank extends Kit {
                     this.cancel();
                     count = 0;
                 }
-                p.getWorld().spawnParticle(Particle.END_ROD, p.getLocation(), 20);
+                p.getWorld().spawnParticle(Particle.DRIP_LAVA, p.getLocation(), 20);
             }
         }.runTaskTimer(main, 0L, 1L);
         p.getWorld().playSound(p.getLocation(), Sound.BLOCK_NOTE_BLOCK_DIDGERIDOO, 5f, 1f);
@@ -293,8 +293,8 @@ public class Tank extends Kit {
                             return;
                         }
                         p.getWorld().spawnParticle(Particle.FLAME, p.getLocation(), 10);
-                        p.setVelocity(p.getLocation().getDirection().multiply(2));
-                        p.getWorld().playSound(p.getLocation(), Sound.ENTITY_FIREWORK_ROCKET_SHOOT, 3f, 3f);
+                        p.setVelocity(p.getLocation().getDirection().multiply(1.9));
+                        p.getWorld().playSound(p.getLocation(), Sound.ENTITY_FIREWORK_ROCKET_SHOOT, 5f, 0.5f);
                     }
                 }.runTaskTimer(main, 0L, 1L);
             }

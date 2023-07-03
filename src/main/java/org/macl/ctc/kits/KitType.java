@@ -7,5 +7,6 @@ public enum KitType {
     DEMOLITIONIST,
     BUILDER,
     RUNNER,
-    TANK
+    TANK,
+    FISHERMAN
 }

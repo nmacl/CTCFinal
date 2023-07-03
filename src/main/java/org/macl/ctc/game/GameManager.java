@@ -99,11 +99,12 @@ public class GameManager {
                 lobby.cancel();
                 main.broadcast("The game cannot begin until another player joins the stack!");
             }
+            // fix quit (check if stack players are empty)
         } else {
             stack.add(p.getUniqueId());
             if (stack.size() >= 2 && starting == false) {
                 starting = true;
-                lobby = new LobbyTimer(5).runTaskTimer(main, 0L, 20L);
+                lobby = new LobbyTimer(10).runTaskTimer(main, 0L, 20L);
             }
             main.send(p, "You have been added to the stack");
         }
@@ -315,9 +316,9 @@ public class GameManager {
         red.setDisplayName(ChatColor.RED + "Red");
         blue.setDisplayName(ChatColor.BLUE + "Blue");
         red.setCanSeeFriendlyInvisibles(true);
-        //red.setAllowFriendlyFire(false);
+        red.setAllowFriendlyFire(false);
         blue.setCanSeeFriendlyInvisibles(true);
-        //blue.setAllowFriendlyFire(false);
+        blue.setAllowFriendlyFire(false);
     }
     public Scoreboard scoreboard() {
         return Bukkit.getScoreboardManager().getMainScoreboard();

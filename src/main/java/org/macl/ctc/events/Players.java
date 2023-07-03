@@ -10,6 +10,7 @@ import org.bukkit.event.entity.*;
 import org.bukkit.event.player.*;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
+import org.bukkit.util.Vector;
 import org.macl.ctc.Main;
 import org.macl.ctc.kits.Demolitionist;
 import org.macl.ctc.kits.Kit;
@@ -55,6 +56,23 @@ public class Players extends DefaultListener {
     }
 
     @EventHandler
+    public void fish(PlayerFishEvent event) {
+        event.getHook().setVelocity(event.getHook().getVelocity().multiply(1.7));
+        if(event.getCaught() instanceof Player) {
+            Player c = (Player) event.getCaught();
+            Player p = event.getPlayer();
+            Vector velo = p.getLocation().getDirection().multiply(-3f);
+            double y = p.getLocation().distance(c.getLocation());
+            y*=0.14;
+            main.broadcast(y + "");
+            velo.setY(y);
+            velo.setX(velo.getX()*0.3);
+            velo.setZ(velo.getZ()*0.3);
+            c.setVelocity(velo);
+        }
+    }
+
+    @EventHandler
     public void entityDamage(EntityDamageEvent event) {
         if(event.getEntity() instanceof Player) {
             Player p = (Player) event.getEntity();
@@ -71,7 +89,12 @@ public class Players extends DefaultListener {
         }
     }
 
-    @EventHandler
+    public void onEggThrow(PlayerEggThrowEvent e) {
+        e.setHatching(false);
+    }
+
+
+        @EventHandler
     public void itemBreak(PlayerItemBreakEvent event) {
         event.getBrokenItem().setDurability((short)3);
     }
@@ -88,14 +111,13 @@ public class Players extends DefaultListener {
                     p.addPotionEffect(new PotionEffect(PotionEffectType.BLINDNESS, 20*2, 0));
                     p.addPotionEffect(new PotionEffect(PotionEffectType.WEAKNESS, 20 * 5, 2));
                 }
-
             }
             if (event.getDamager() instanceof Snowball)
-                event.setDamage(0.75);
+                event.setDamage(1);
             if(event.getDamager() instanceof Arrow)
-                event.setDamage(2f);
+                event.setDamage(2.35f);
             if(event.getDamager() instanceof Egg)
-                p.getWorld().createExplosion(event.getEntity().getLocation(), 2.4f, false);
+                p.getWorld().createExplosion(event.getEntity().getLocation(), 1.85f, false);
         }
     }
 

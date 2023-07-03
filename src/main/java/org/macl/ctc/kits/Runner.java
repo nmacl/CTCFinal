@@ -74,8 +74,12 @@ public class Runner extends Kit {
 
     ArrayList<Entity> es = new ArrayList<>();
 
+    boolean polarOn = false;
+
     public void polarField() {
-        // cooldown
+        if(polarOn)
+            return;
+        polarOn = true;
         new BukkitRunnable() {
             @Override
             public void run() {
@@ -83,18 +87,24 @@ public class Runner extends Kit {
 
                 ArrayList<Projectile> proj = new ArrayList<Projectile>();
 
-                if(ticks > 8*20) {
+                if(ticks > 6*20 || p.isDead()) {
                     ticks = 0;
                     this.cancel();
                     es.clear();
+                    new BukkitRunnable() {
+                        @Override
+                        public void run() {
+                            polarOn = false;
+                        }
+                    }.runTaskLater(main, 20*15L);
                     return;
                 }
-                for(Entity e : p.getNearbyEntities(4, 4, 4)) {
+                for(Entity e : p.getNearbyEntities(2.5, 2.5, 2.5)) {
                     if(es.contains(e)) continue;
                     if(e instanceof Player) {
                         Player f = (Player) e;
-                        Vector velo = f.getLocation().getDirection().multiply(-0.25f);
-                        velo.setY(velo.getY() + 0.75);
+                        Vector velo = f.getLocation().getDirection().multiply(-0.27f);
+                        velo.setY(f.getVelocity().getY() + 0.03);
                         e.setVelocity(velo);
                     }
                     if(e instanceof Projectile) {
@@ -112,16 +122,7 @@ public class Runner extends Kit {
                 }
 
                 Location loc = p.getLocation();
-                for(int r = 5; r > -3; r--) {
-
-                    t = t + Math.PI/4;
-                    double x = r*Math.cos(t);
-                    double y = 1;
-                    y = r*0.5;
-                    double z = r*Math.sin(t);
-                    loc.add(x,y,z);
-                    p.getWorld().spawnParticle(Particle.CLOUD, loc, 5);
-                }
+                p.getWorld().spawnParticle(Particle.CLOUD, loc, 5);
                 ticks++;
             }
         }.runTaskTimer(main, 0L, 1L);

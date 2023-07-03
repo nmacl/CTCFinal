@@ -25,7 +25,7 @@ public class Grandma extends Kit {
         ArrayList<Enchantment> enchants = new ArrayList<Enchantment>();
         enchants.add(Enchantment.KNOCKBACK);
         enchants.add(Enchantment.DAMAGE_ALL);
-        e.addItem(newItemEnchants(Material.STICK, ChatColor.DARK_PURPLE + "Cane", enchants, 6));
+        e.addItem(newItemEnchants(Material.STICK, ChatColor.DARK_PURPLE + "Cane", enchants, 4));
         e.addItem(healCookies);
         e.addItem(healCookies);
         e.addItem(healCookies);

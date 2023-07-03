@@ -76,6 +76,13 @@ public class KitManager implements Listener {
 
         menu.setItem(6, ChatColor.GRAY + "Tank", Enchantment.PROTECTION_ENVIRONMENTAL, tankLore, Material.IRON_BLOCK);
 
+        List<String> fishLore = createLore(ChatColor.GOLD + "Fishing rod",
+                ChatColor.YELLOW + "Pufferfish Bomb",
+                ChatColor.LIGHT_PURPLE + "Cod Sniper");
+
+        menu.setItem(7, ChatColor.DARK_AQUA + "Fisherman", Enchantment.LUCK, fishLore, Material.FISHING_ROD);
+
+
         return menu;
     }
 
@@ -106,7 +113,8 @@ public class KitManager implements Listener {
         //if(main.game.started != true)
           //  return;
 
-        event.setCancelled(true);
+        if(main.game.started)
+            event.setCancelled(true);
         if(view.getTitle().equals(main.prefix + "Kit Menu")) {
             if(click == null)
                 return;
@@ -131,6 +139,9 @@ public class KitManager implements Listener {
                     break;
                 case IRON_BLOCK:
                     kits.put(p.getUniqueId(), new Tank(main, p, KitType.TANK));
+                    break;
+                case FISHING_ROD:
+                    kits.put(p.getUniqueId(), new Fisherman(main, p, KitType.FISHERMAN));
                     break;
                 default:
                     break;
