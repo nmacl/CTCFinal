@@ -45,7 +45,7 @@ public class Demolitionist extends Kit {
         if(cooldowns.get("sheep"))
             return;
         Sheep g = (Sheep) p.getLocation().getWorld().spawnEntity(p.getLocation(), EntityType.SHEEP);
-        g.setVelocity(p.getLocation().getDirection().multiply(1.75f));
+        g.setVelocity(p.getLocation().getDirection().multiply(1.35f));
         g.setBaby();
         g.setInvulnerable(true);
         new sheepLaunch(g).runTaskTimer(main, 0L, 1L);
@@ -118,7 +118,7 @@ public class Demolitionist extends Kit {
 
         @Override
         public void run() {
-            if(p == null || p.isDead() || main.getKits().get(p.getUniqueId()) == null || main.getKits().get(p.getUniqueId()) instanceof Demolitionist ) {
+            if(p == null || p.isDead() || main.getKits().get(p.getUniqueId()) == null || !(main.getKits().get(p.getUniqueId()) instanceof Demolitionist)) {
                 this.cancel();
                 return;
             }
@@ -126,18 +126,7 @@ public class Demolitionist extends Kit {
 
 
             if(eggTime == 30) {
-                int first = p.getInventory().first(Material.EGG);
-
-                if(first == -1) {
-                    addEgg();
-                    eggTime = 0;
-                    return;
-                }
-
-                ItemStack m = p.getInventory().getItem(first);
-
-                if(m.getAmount() < 3)
-                    addEgg();
+                addEgg();
                 eggTime = 0;
             }
         }

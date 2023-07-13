@@ -64,8 +64,7 @@ public class Players extends DefaultListener {
             Vector velo = p.getLocation().getDirection().multiply(-3f);
             double y = p.getLocation().distance(c.getLocation());
             y*=0.14;
-            main.broadcast(y + "");
-            velo.setY(y);
+            velo.setY(Math.min(y, 1.8));
             velo.setX(velo.getX()*0.3);
             velo.setZ(velo.getZ()*0.3);
             c.setVelocity(velo);
@@ -109,15 +108,15 @@ public class Players extends DefaultListener {
                     event.setDamage(0.5);
                 if(main.getKits().get(attacker.getUniqueId()) != null && main.getKits().get(attacker.getUniqueId()) instanceof Spy && attacker.getInventory().getItemInMainHand().getType() == Material.IRON_HOE) {
                     p.addPotionEffect(new PotionEffect(PotionEffectType.BLINDNESS, 20*2, 0));
-                    p.addPotionEffect(new PotionEffect(PotionEffectType.WEAKNESS, 20 * 5, 2));
+                    p.addPotionEffect(new PotionEffect(PotionEffectType.POISON, 20 * 3, 2));
                 }
             }
-            if (event.getDamager() instanceof Snowball)
-                event.setDamage(1);
             if(event.getDamager() instanceof Arrow)
-                event.setDamage(2.35f);
+                event.setDamage(2.25);
+            if (event.getDamager() instanceof Snowball)
+                event.setDamage(1.25);
             if(event.getDamager() instanceof Egg)
-                p.getWorld().createExplosion(event.getEntity().getLocation(), 1.85f, false);
+                p.getWorld().createExplosion(event.getEntity().getLocation(), 1.54f, false);
         }
     }
 

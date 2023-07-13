@@ -125,7 +125,7 @@ public class Blocks extends DefaultListener {
         if(event.getEntity().getShooter() instanceof Player && event.getEntity() instanceof Egg) {
             Player p = (Player) event.getEntity().getShooter();
             if(b != null)
-                b.getLocation().getWorld().createExplosion(b.getLocation().add(0, 1.3, 0), 2.55f);
+                b.getLocation().getWorld().createExplosion(b.getLocation().add(0, 1.3, 0), 1.9f);
 
         }
         if(event.getEntity().getShooter() instanceof Player && event.getEntity() instanceof Arrow) {

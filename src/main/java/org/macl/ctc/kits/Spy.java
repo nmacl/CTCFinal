@@ -50,7 +50,7 @@ public class Spy extends Kit {
     public void detonate() {
         if(detonate != null) {
             p.getInventory().remove(Material.BLAZE_ROD);
-            new detonateTimer().runTaskTimer(main, 0, 1L);
+            new detonateTimer().runTaskTimer(main, 0, 2L);
         }
     }
 

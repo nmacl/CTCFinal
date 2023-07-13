@@ -10,6 +10,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.potion.PotionEffectType;
+import org.bukkit.scheduler.BukkitRunnable;
 import org.macl.ctc.Main;
 
 import java.util.ArrayList;
@@ -33,6 +34,19 @@ public class Grandma extends Kit {
         e.setChestplate(newItem(Material.LEATHER_CHESTPLATE, "saggy tits"));
         giveWool();
         giveWool();
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                int first = e.first(Material.COOKIE);
+                ItemStack m = e.getItem(first);
+                if(p.isDead() || main.getKits().get(p.getUniqueId()) == null) {
+                    this.cancel();
+                    return;
+                }
+                if(m.getAmount() < 4)
+                    e.addItem(healCookies);
+            }
+        }.runTaskTimer(main, 0L, 20*20*20L);
     }
 
     public void heart() {
@@ -46,4 +60,7 @@ public class Grandma extends Kit {
             p.setHealth(p.getHealth() + 4.0);
 
     }
+
+
+
 }

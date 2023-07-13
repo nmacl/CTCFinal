@@ -1,5 +1,6 @@
 package org.macl.ctc.kits;
 
+import net.minecraft.world.entity.animal.Cod;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -21,7 +22,7 @@ import java.util.ArrayList;
 
 public class Runner extends Kit {
     Material wool = (main.game.redHas(p)) ? Material.RED_WOOL : Material.BLUE_WOOL;
-    ItemStack sword = newItemEnchanted(Material.STONE_SWORD, ChatColor.GOLD + "Block Run", Enchantment.DAMAGE_ALL, 1);
+    ItemStack sword = newItem(Material.STONE_SWORD, ChatColor.GOLD + "Block Run");
 
     public Runner(Main main, Player p, KitType type) {
         super(main, p, type);
@@ -101,6 +102,8 @@ public class Runner extends Kit {
                 }
                 for(Entity e : p.getNearbyEntities(2.5, 2.5, 2.5)) {
                     if(es.contains(e)) continue;
+                    if(e instanceof Cod)
+                        e.remove();
                     if(e instanceof Player) {
                         Player f = (Player) e;
                         Vector velo = f.getLocation().getDirection().multiply(-0.27f);
