@@ -48,19 +48,19 @@ public class Builder extends Kit {
     public void stairs() {
         if (stairs)
             return;
-        new BuildStair(main, p.getLocation(), p.getFacing(), p).runTaskTimer(main, 0, 10L);
+        new BuildStair(main, p.getLocation(), p.getFacing(), p).runTaskTimer(main, 0, 4L);
     }
 
     public void tower() {
         if (tower)
             return;
-        new BuildTower(main, p.getLocation(), p).runTaskTimer(main, 0L, 10L);
+        new BuildTower(main, p.getLocation(), p).runTaskTimer(main, 0L, 4L);
     }
 
     public void bridge() {
         if (bridge)
             return;
-        new BuildBridge(main, p.getLocation(), p.getFacing(), p).runTaskTimer(main, 0L, 10L);
+        new BuildBridge(main, p.getLocation(), p.getFacing(), p).runTaskTimer(main, 0L, 4L);
     }
 
     public class BuildStair extends BukkitRunnable {

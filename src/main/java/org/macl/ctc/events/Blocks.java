@@ -120,7 +120,7 @@ public class Blocks extends DefaultListener {
     @EventHandler
     public void hit(ProjectileHitEvent event) {
         Block b = event.getHitBlock();
-        if(b.getType() == Material.RED_STAINED_GLASS_PANE || b.getType() == Material.BLUE_STAINED_GLASS_PANE)
+        if(b == null || b.getType() == Material.RED_STAINED_GLASS_PANE || b.getType() == Material.BLUE_STAINED_GLASS_PANE)
             return;
         if(event.getEntity().getShooter() instanceof Player && event.getEntity() instanceof Egg) {
             Player p = (Player) event.getEntity().getShooter();

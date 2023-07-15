@@ -72,10 +72,10 @@ public class Demolitionist extends Kit {
                 if(e instanceof Player) {
                     Player p1 = (Player) e;
 
-                    if(main.game.redHas(p1) && main.game.getBlue().hasEntry(p.getName()))
-                        shep.getNavigation().moveTo(p1.getLocation().getX(), p1.getLocation().getY(), p1.getLocation().getZ(), 1.67f);
-                    if(main.game.blueHas(p1) && main.game.getRed().hasEntry(p.getName()))
-                        shep.getNavigation().moveTo(p1.getLocation().getX(), p1.getLocation().getY(), p1.getLocation().getZ(), 1.67f);
+                    if(main.game.redHas(p1) && main.game.blueHas(p))
+                        shep.getNavigation().moveTo(p1.getLocation().getX(), p1.getLocation().getY(), p1.getLocation().getZ(), 1.75f);
+                    if(main.game.blueHas(p1) && main.game.redHas(p))
+                        shep.getNavigation().moveTo(p1.getLocation().getX(), p1.getLocation().getY(), p1.getLocation().getZ(), 1.75f);
                 }
             }
 
