@@ -9,8 +9,5 @@
         <module name="CTC23" />
       </profile>
     </annotationProcessing>
-    <bytecodeTargetLevel>
-      <module name="CTC23" target="17" />
-    </bytecodeTargetLevel>
   </component>
 </project>

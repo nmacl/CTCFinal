@@ -90,6 +90,10 @@ public class Tank extends Kit {
                 locs.add(bLoc.clone().add(0, 2, 0));
 
                 for (Location loc : locs) {
+                    if(loc.getBlock().getType() == Material.NETHERITE_BLOCK){
+                        locs.remove(loc);
+                        continue;
+                    }
                     loc.getBlock().setType(Material.IRON_BLOCK);
                 }
 
@@ -104,7 +108,7 @@ public class Tank extends Kit {
         e.setItem(0, gun);
         e.setItem(1, newItem(Material.FLINT, ChatColor.RED + "EXIT"));
         e.setChestplate(new ItemStack(Material.IRON_CHESTPLATE));
-        e.setLeggings(newItem(Material.IRON_LEGGINGS, "piss pants"));
+        e.setLeggings(newItem(Material.IRON_LEGGINGS, "Cool pants"));
         e.setBoots(new ItemStack(Material.NETHERITE_BOOTS));
         setup = true;
     }

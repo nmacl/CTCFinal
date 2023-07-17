@@ -76,7 +76,7 @@ public class Blocks extends DefaultListener {
                     return;
                 s.setDetonate(b.getLocation());
                 s.addDetonate();
-                p.sendMessage(ChatColor.GREEN + "Remote explosive activated! Right click blaze rod to activate");
+                p.sendMessage(ChatColor.GREEN + "Remote explosive deployed! Right click blaze rod to activate");
             }
 
         if(main.getKits().get(p.getUniqueId()) != null && main.getKits().get(p.getUniqueId()) instanceof Tank && (b.getType() == Material.BLUE_STAINED_GLASS_PANE || b.getType() == Material.RED_STAINED_GLASS_PANE)) {

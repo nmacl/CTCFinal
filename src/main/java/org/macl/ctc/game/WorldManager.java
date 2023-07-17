@@ -95,11 +95,11 @@ public class WorldManager {
     }
 
     public Location getRed() {
-        return new Location(Bukkit.getWorld("map"), 0, 75, 152);
+        return new Location(Bukkit.getWorld("map"), 0, 75, 193);
     }
 
     public Location getBlue() {
-        return new Location(Bukkit.getWorld("map"), 4, 75, -147);
+        return new Location(Bukkit.getWorld("map"), 4, 75, -188);
     }
 
     public ArrayList<Location> getCenter() {

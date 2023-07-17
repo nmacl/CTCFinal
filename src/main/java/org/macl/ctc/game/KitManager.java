@@ -32,7 +32,7 @@ public class KitManager implements Listener {
     }
 
     public KitMenu getMenu() {
-        KitMenu menu = new KitMenu(main.prefix + "Kit Menu", 9);
+        KitMenu menu = new KitMenu(main.prefix + "Kit Menu", 18);
         List<String> gLore = createLore(ChatColor.DARK_PURPLE + "Cane: Knockback 10",
                 ChatColor.LIGHT_PURPLE + "Cookies: Right click player to heal",
                 ChatColor.RED + "No speed");
@@ -71,7 +71,7 @@ public class KitManager implements Listener {
         menu.setItem(5, ChatColor.BLUE + "Runner", Enchantment.FROST_WALKER, runnerLore, Material.LEATHER_BOOTS);
 
         List<String> tankLore = createLore(ChatColor.DARK_GREEN + "Gatling Mode",
-                ChatColor.RED + "Hellfire Missle",
+                ChatColor.RED + "Hellfire Missile",
                 ChatColor.DARK_AQUA + "Shield");
 
         menu.setItem(6, ChatColor.GRAY + "Tank", Enchantment.PROTECTION_ENVIRONMENTAL, tankLore, Material.IRON_BLOCK);
@@ -81,6 +81,12 @@ public class KitManager implements Listener {
                 ChatColor.LIGHT_PURPLE + "Cod Sniper");
 
         menu.setItem(7, ChatColor.DARK_AQUA + "Fisherman", Enchantment.LUCK, fishLore, Material.FISHING_ROD);
+
+        List<String> grandLore = createLore(ChatColor.GRAY + "Double barreled slug shotgun",
+                ChatColor.YELLOW + "Booze: Increased damage and speed at a cost",
+                ChatColor.RED + "No speed");
+
+        menu.setItem(8, ChatColor.DARK_GRAY + "Grandpa", Enchantment.BINDING_CURSE, grandLore, Material.HONEY_BOTTLE);
 
 
         return menu;
@@ -142,6 +148,9 @@ public class KitManager implements Listener {
                     break;
                 case FISHING_ROD:
                     kits.put(p.getUniqueId(), new Fisherman(main, p, KitType.FISHERMAN));
+                    break;
+                case HONEY_BOTTLE:
+                    kits.put(p.getUniqueId(), new Grandpa(main, p, KitType.GRANDPA));
                     break;
                 default:
                     break;

@@ -65,7 +65,7 @@
                             <goal>copy-resources</goal>
                         </goals>
                         <configuration>
-                            <outputDirectory>C:/Users/nmacl/Desktop/SERVER23/plugins</outputDirectory>
+                            <outputDirectory>C:/Users/kau/Desktop/serber 3/plugins</outputDirectory>
                             <resources>
                                 <resource>
                                     <directory>${project.build.directory}</directory>
