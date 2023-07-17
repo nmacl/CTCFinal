@@ -52,16 +52,6 @@ public class GameManager {
                 stack.remove(uuid);
                 continue;
             }
-            String name = p.getName();
-            int redSize = getRed().getSize();
-            int blueSize = getBlue().getSize();
-            if(redSize > blueSize)
-                getBlue().addEntry(name);
-            else if(redSize == blueSize)
-                getRed().addEntry(name);
-            else if(redSize < blueSize)
-                getBlue().addEntry(name);
-            setup(p);
         }
 
         main.broadcast("The game has begun! Destroy the other teams core (obsidian) to win!");
@@ -107,6 +97,24 @@ public class GameManager {
                 lobby = new LobbyTimer(10).runTaskTimer(main, 0L, 20L);
             }
             main.send(p, "You have been added to the stack");
+            if (started == true) {
+                String name = p.getName();
+                int redSize = getRed().getSize();
+                int blueSize = getBlue().getSize();
+                if (redSize > blueSize)
+                    getBlue().addEntry(name);
+                else if (redSize == blueSize)
+                    getRed().addEntry(name);
+                else if (redSize < blueSize)
+                    getBlue().addEntry(name);
+                setup(p);
+                p.teleport(Bukkit.getWorld("map").getSpawnLocation());
+                if (getRed().hasEntry(p.getName()))
+                    p.teleport(world.getRed());
+                if (getBlue().hasEntry(p.getName()))
+                    p.teleport(world.getBlue());
+                p.setHealth(0);
+            }
         }
     }
 

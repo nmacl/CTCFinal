@@ -65,7 +65,7 @@
                             <goal>copy-resources</goal>
                         </goals>
                         <configuration>
-                            <outputDirectory>C:/Users/kau/Desktop/serber 3/plugins</outputDirectory>
+                            <outputDirectory>C:\Users\doges\OneDrive\Desktop\serber 3</outputDirectory>
                             <resources>
                                 <resource>
                                     <directory>${project.build.directory}</directory>
