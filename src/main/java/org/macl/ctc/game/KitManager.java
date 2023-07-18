@@ -86,7 +86,7 @@ public class KitManager implements Listener {
                 ChatColor.YELLOW + "Booze: Increased damage and speed at a cost",
                 ChatColor.RED + "No speed");
 
-        menu.setItem(8, ChatColor.DARK_GRAY + "Grandpa", Enchantment.BINDING_CURSE, grandLore, Material.HONEY_BOTTLE);
+        menu.setItem(8, ChatColor.DARK_GRAY + "Grandpa", Enchantment.VANISHING_CURSE, grandLore, Material.HONEY_BOTTLE);
 
 
         return menu;

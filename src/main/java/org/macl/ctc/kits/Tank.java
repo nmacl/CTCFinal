@@ -31,10 +31,10 @@ public class Tank extends Kit {
     public Tank(Main main, Player p, KitType type) {
         super(main, p, type);
         p.getInventory().addItem(gun);
-        p.getInventory().addItem(newItem(Material.FLINT_AND_STEEL, ChatColor.RED + "Hellfire Missle", 1));
+        p.getInventory().addItem(newItem(Material.FLINT_AND_STEEL, ChatColor.RED + "Hellfire Missile", 1));
         p.getInventory().addItem(glass);
         e.setChestplate(new ItemStack(Material.IRON_CHESTPLATE));
-        e.setLeggings(newItem(Material.IRON_LEGGINGS, "piss pants"));
+        e.setLeggings(new ItemStack(Material.IRON_LEGGINGS));
         e.setBoots(new ItemStack(Material.NETHERITE_BOOTS));
         giveWool();
         giveWool();

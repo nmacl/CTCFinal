@@ -247,7 +247,7 @@ public class GameManager {
     }
 
     //******************************//
-    //           TEAM MANAGER        //
+    //           TEAM MANAGER       //
     //******************************//
 
     public ArrayList<Player> getReds() {

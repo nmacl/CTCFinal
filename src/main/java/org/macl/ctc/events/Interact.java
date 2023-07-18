@@ -123,10 +123,12 @@ public class Interact extends DefaultListener {
             }
             if (k instanceof Grandpa) {
                 Grandpa gr = (Grandpa) k;
-                /*if (m == Material.PRISMARINE_SHARD)
+                if (m == Material.PRISMARINE_SHARD)
                     gr.shootGun();
+                if (m ==Material.LIGHT_GRAY_DYE)
+                    gr.reloadGun();
                 if (m == Material.HONEY_BOTTLE)
-                    gr.drinkBooze(); */
+                    gr.drinkBooze();
             }
         }
 

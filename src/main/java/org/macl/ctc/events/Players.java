@@ -117,6 +117,8 @@ public class Players extends DefaultListener {
                 event.setDamage(1.25);
             if(event.getDamager() instanceof Egg)
                 p.getWorld().createExplosion(event.getEntity().getLocation(), 1.54f, false);
+            if(event.getDamager() instanceof SmallFireball)
+                event.setDamage(9);
         }
     }
 
