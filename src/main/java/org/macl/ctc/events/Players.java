@@ -12,9 +12,7 @@ import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.util.Vector;
 import org.macl.ctc.Main;
-import org.macl.ctc.kits.Demolitionist;
-import org.macl.ctc.kits.Kit;
-import org.macl.ctc.kits.Spy;
+import org.macl.ctc.kits.*;
 
 public class Players extends DefaultListener {
     public Players(Main main) {
@@ -118,9 +116,12 @@ public class Players extends DefaultListener {
             if(event.getDamager() instanceof Egg)
                 p.getWorld().createExplosion(event.getEntity().getLocation(), 1.54f, false);
             if(event.getDamager() instanceof SmallFireball)
-                event.setDamage(9);
+                event.setDamage(4.5);
+            if(event.getDamager() instanceof ShulkerBullet)
+                event.setDamage(4.5);
+            }
         }
-    }
+
 
     @EventHandler
     public void pickup(EntityPickupItemEvent event) {
@@ -141,10 +142,32 @@ public class Players extends DefaultListener {
     }
 
     @EventHandler
-    public void death(PlayerDeathEvent event) {
+    private void death(PlayerDeathEvent event) {
+        Player p = event.getEntity();
         event.setDeathMessage(main.prefix + event.getDeathMessage());
         event.getDrops().clear();
-        kit.remove(event.getEntity());
+        kit.remove(p);
+        //add new code that handles canceling bukkitrunnables
+
+        /*if (kit.kits.get(p.getUniqueId()) != null) {
+            Kit k = kit.kits.get(p.getUniqueId());
+            if (k instanceof Grandpa) {
+                Grandpa gr = (Grandpa) k;
+                if (gr.reloadingTask != null && !gr.reloadingTask.isCancelled()) {
+                    gr.reloadingTask.cancel();
+                    gr.reloadingTask = null;
+                }
+                if (gr.unboozeTask != null && !gr.unboozeTask.isCancelled()) {
+                    gr.unboozeTask.cancel();
+                    gr.unboozeTask = null;
+
+                }
+                if (gr.reboozeTask != null && !gr.reboozeTask.isCancelled()) {
+                    gr.reboozeTask.cancel();
+                    gr.reboozeTask = null;
+                }
+            }
+        }*/
     }
 
     @EventHandler

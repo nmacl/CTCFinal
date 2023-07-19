@@ -23,7 +23,6 @@ public class Artificer extends Kit {
 
     private int delay = 0;
     private int interval = 2;
-    private int repetitions = 100;
 
     public Artificer(Main main, Player p, KitType type) {
         super(main, p, type);

@@ -93,8 +93,6 @@ public class KitManager implements Listener {
                 ChatColor.RED + "Flamethrower");
 
         menu.setItem(9, ChatColor.GRAY + "Artificer", Enchantment.CHANNELING, artLore, Material.FLINT);
-
-
         return menu;
     }
 
