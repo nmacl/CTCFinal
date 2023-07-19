@@ -109,16 +109,23 @@ public class Players extends DefaultListener {
                     p.addPotionEffect(new PotionEffect(PotionEffectType.POISON, 20 * 3, 2));
                 }
             }
-            if(event.getDamager() instanceof Arrow)
-                event.setDamage(2.25);
+            if(event.getDamager() instanceof Arrow ar) {
+                event.setCancelled(true);
+                ((Player) event.getEntity()).damage(2.25);
+                ar.remove();
+            }
             if (event.getDamager() instanceof Snowball)
                 event.setDamage(1.25);
             if(event.getDamager() instanceof Egg)
                 p.getWorld().createExplosion(event.getEntity().getLocation(), 1.54f, false);
             if(event.getDamager() instanceof SmallFireball)
                 event.setDamage(4.5);
-            if(event.getDamager() instanceof ShulkerBullet)
-                event.setDamage(4.5);
+            if(event.getDamager() instanceof SpectralArrow sp){
+                event.setCancelled(true);
+                ((Player) event.getEntity()).damage(2);
+                sp.remove();
+
+                }
             }
         }
 
@@ -175,6 +182,11 @@ public class Players extends DefaultListener {
         Player p = event.getPlayer();
         p.teleport(p.getWorld().getSpawnLocation());
         game.respawn(p);
+    }
+    @EventHandler
+    public void onProjectileHit(ProjectileHitEvent event) {
+
+
     }
 
 

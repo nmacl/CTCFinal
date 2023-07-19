@@ -10,6 +10,7 @@ import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Arrow;
 import org.bukkit.entity.Egg;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.SpectralArrow;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.block.*;
 import org.bukkit.event.entity.EntityExplodeEvent;
@@ -130,8 +131,15 @@ public class Blocks extends DefaultListener {
         }
         if(event.getEntity().getShooter() instanceof Player && event.getEntity() instanceof Arrow) {
             Player p = (Player) event.getEntity().getShooter();
+            if (event.getEntity() != null)
+                event.getEntity().remove();
+        }
+
+        if(event.getEntity().getShooter() instanceof Player && event.getEntity() instanceof SpectralArrow) {
+            Player p = (Player) event.getEntity().getShooter();
             if(event.getEntity() != null)
                 event.getEntity().remove();
+
         }
     }
 

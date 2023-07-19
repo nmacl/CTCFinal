@@ -185,6 +185,13 @@ public class Artificer extends Kit {
         }.runTaskLater(main, 20 * 12);
     }
 
+    int frostLevel = 1;
+    public void frostThrow() {
+        SpectralArrow dagger = p.launchProjectile(SpectralArrow.class);
+
+
+    }
+
     public void voidBomb(Location initialLocation, Vector direction) {
         ItemStack blackConcretePowder = new ItemStack(Material.BLACK_CONCRETE_POWDER);
         Item item = initialLocation.getWorld().dropItem(p.getEyeLocation(), blackConcretePowder);
