@@ -1,14 +1,15 @@
 package org.macl.ctc.kits;
 
+import org.bukkit.block.Block;
+import org.bukkit.entity.*;
+import org.bukkit.event.Listener;
+import org.bukkit.event.block.Action;
 import org.bukkit.inventory.meta.PotionMeta;
 import org.bukkit.potion.*;
 import org.bukkit.*;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.Sound;
-import org.bukkit.entity.Entity;
-import org.bukkit.entity.LivingEntity;
-import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.ItemStack;
@@ -20,7 +21,7 @@ import org.bukkit.util.RayTraceResult;
 import org.bukkit.util.Vector;
 import org.macl.ctc.Main;
 
-import static org.bukkit.Bukkit.getServer;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class Artificer extends Kit {
 
@@ -67,30 +68,40 @@ public class Artificer extends Kit {
 
             @Override
             public void run() {
-                // Flamethrower sounds
+
                 p.getWorld().playSound(p.getLocation(), Sound.ENTITY_BLAZE_SHOOT, 1f, 1.5f);
                 p.getWorld().playSound(p.getLocation(), Sound.BLOCK_DISPENSER_FAIL, 1f, 2f);
 
                 Location start = p.getEyeLocation();
                 Vector direction = p.getEyeLocation().getDirection();
 
-                // Calculate the step size to spawn particles along the trajectory
-                double stepSize = 0.2; // Adjust this value if needed
+
+                double stepSize = 0.2;
                 int steps = (int) (maxLength / stepSize);
 
                 for (int i = 0; i < steps; i++) {
                     Location particleLocation = start.clone().add(direction.clone().multiply(i * stepSize));
-                    p.getWorld().spawnParticle(Particle.LAVA, particleLocation.subtract(0, 1, 0), 0);
+
+                    RayTraceResult rayTrace = p.getWorld().rayTraceBlocks(p.getEyeLocation(), direction, i * stepSize);
+                    if (rayTrace != null && rayTrace.getHitBlock() != null) {
+
+                        break;
+                    } else {
+
+                        p.getWorld().spawnParticle(Particle.LAVA, particleLocation.subtract(0, 1, 0), 0);
 
 
-                    double damageRadius = 2.0;
-                    for (Entity entity : p.getWorld().getNearbyEntities(particleLocation, damageRadius, damageRadius, damageRadius)) {
-                        if (entity instanceof LivingEntity && !entity.equals(p)) {
-                            LivingEntity livingEntity = (LivingEntity) entity;
+                        double damageRadius = 0.7;
+                        for (Entity entity : p.getWorld().getNearbyEntities(particleLocation, damageRadius, damageRadius, damageRadius)) {
+                            if (entity instanceof LivingEntity && !entity.equals(p)) {
+                                LivingEntity livingEntity = (LivingEntity) entity;
+                                if (p.hasLineOfSight(entity)) {
 
-                            livingEntity.damage(damageAmount);
+                                    livingEntity.damage(damageAmount);
 
-                            livingEntity.setFireTicks(40);
+                                    livingEntity.setFireTicks(40);
+                                }
+                            }
                         }
                     }
                 }
@@ -110,6 +121,7 @@ public class Artificer extends Kit {
         };
         task.runTaskTimer(main, delay, interval);
     }
+
     public void upHeave() {
         e.setItem(3, newItem(Material.GUNPOWDER, ChatColor.GRAY + "Updraft..."));
         p.setVelocity(p.getLocation().getDirection().multiply(0.5f));
@@ -135,38 +147,54 @@ public class Artificer extends Kit {
         double radiusIncrement = (endRadius - startRadius) / duration;
 
         new BukkitRunnable() {
-                    double currentRadius = startRadius;
-                    int iterations = 0;
-                    double vOffset = 0.3;
+            double currentRadius = startRadius;
+            int iterations = 0;
+            double vOffset = 0.3;
 
-                    @Override
-                    public void run() {
-                        if (iterations >= duration) {
-                            vOffset = 0.3;
-                            cancel();
-                            return;
-                        }
-
-                        for (int j = 0; j < particles; j++) {
-                            double angle = j * increment;
-                            double x = center.getX() + currentRadius * Math.cos(angle);
-                            double z = center.getZ() + currentRadius * Math.sin(angle);
-                            Location particleLocation = new Location(center.getWorld(), x, center.getY(), z);
-                            p.spawnParticle(Particle.CLOUD, particleLocation, 0, 0, vOffset, 0);
-
-                        }
-                        vOffset -= 0.04;
-                        currentRadius += radiusIncrement;
-                        iterations++;
-                    }
-                }.runTaskTimer(main, 0, 1);
-        new BukkitRunnable(){
             @Override
-            public void run(){
+            public void run() {
+                if (iterations >= duration) {
+                    vOffset = 0.3;
+                    cancel();
+                    return;
+                }
+
+                for (int j = 0; j < particles; j++) {
+                    double angle = j * increment;
+                    double x = center.getX() + currentRadius * Math.cos(angle);
+                    double z = center.getZ() + currentRadius * Math.sin(angle);
+                    Location particleLocation = new Location(center.getWorld(), x, center.getY(), z);
+                    p.spawnParticle(Particle.CLOUD, particleLocation, 0, 0, vOffset, 0);
+
+                }
+                vOffset -= 0.04;
+                currentRadius += radiusIncrement;
+                iterations++;
+            }
+        }.runTaskTimer(main, 0, 1);
+        new BukkitRunnable() {
+            @Override
+            public void run() {
                 e.setItem(3, newItem(Material.FEATHER, ChatColor.WHITE + "Updraft"));
-                p.playSound(p.getLocation(),Sound.ENTITY_HORSE_BREATHE,1,1);
+                p.playSound(p.getLocation(), Sound.ENTITY_HORSE_BREATHE, 1, 1);
 
             }
-        }.runTaskLater(main, 20*12);
-        }
+        }.runTaskLater(main, 20 * 12);
     }
+
+    public void voidBomb(Location initialLocation, Vector direction) {
+        ItemStack blackConcretePowder = new ItemStack(Material.BLACK_CONCRETE_POWDER);
+        Item item = initialLocation.getWorld().dropItem(p.getEyeLocation(), blackConcretePowder);
+        item.setVelocity(direction.multiply(1.5));
+
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                if (item.isOnGround()) {
+                    item.remove();
+                    this.cancel();
+                }
+            }
+        }.runTaskTimer(main, 0, 1);
+    }
+}

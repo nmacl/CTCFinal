@@ -13,6 +13,8 @@ import org.bukkit.util.Vector;
 import org.macl.ctc.Main;
 import org.macl.ctc.kits.*;
 
+import static org.bukkit.Bukkit.getServer;
+
 public class Interact extends DefaultListener {
     public Interact(Main main) {
         super(main);
@@ -121,7 +123,7 @@ public class Interact extends DefaultListener {
                 if(m == Material.COD)
                     f.codSniper();
             }
-            if (k instanceof Grandpa) {
+            if(k instanceof Grandpa) {
                 Grandpa gr = (Grandpa) k;
                 if (m == Material.PRISMARINE_SHARD)
                     gr.shootGun();
@@ -132,8 +134,8 @@ public class Interact extends DefaultListener {
             }
             if (k instanceof Artificer) {
                 Artificer a = (Artificer) k;
-                if (m == Material.FLINT);
-
+                if (m == Material.FLINT)
+                    a.voidBomb(event.getPlayer().getLocation(), event.getPlayer().getEyeLocation().getDirection());
                 if (m == Material.RIB_ARMOR_TRIM_SMITHING_TEMPLATE)
                     a.flamethrowerShoot();
                 if (m ==Material.FEATHER)
