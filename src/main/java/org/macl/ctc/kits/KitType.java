@@ -9,5 +9,6 @@ public enum KitType {
     RUNNER,
     TANK,
     FISHERMAN,
-    GRANDPA
+    GRANDPA,
+    ARTIFICER,
 }

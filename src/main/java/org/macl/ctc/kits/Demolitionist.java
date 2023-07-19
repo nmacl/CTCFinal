@@ -28,7 +28,7 @@ public class Demolitionist extends Kit {
         super(main, p, type);
         //CraftPlayer craft = (CraftPlayer) p;
         PlayerInventory e = p.getInventory();
-        e.addItem(newItem(Material.STONE_SHOVEL, ChatColor.MAGIC + "OEIHRIOQW"));
+        e.addItem(newItem(Material.STONE_SHOVEL, ChatColor.GRAY + "SKULL BASHER"));
         e.setHelmet(newItem(Material.CHAINMAIL_HELMET, ""));
         e.setChestplate(newItem(Material.CHAINMAIL_CHESTPLATE, ""));
         e.setBoots(newItem(Material.CHAINMAIL_BOOTS, ""));

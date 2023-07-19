@@ -88,6 +88,12 @@ public class KitManager implements Listener {
 
         menu.setItem(8, ChatColor.DARK_GRAY + "Grandpa", Enchantment.VANISHING_CURSE, grandLore, Material.HONEY_BOTTLE);
 
+        List<String> artLore = createLore(ChatColor.GRAY + "Void Bomb",
+                ChatColor.GOLD + "Grappling Hook",
+                ChatColor.RED + "Flamethrower");
+
+        menu.setItem(9, ChatColor.GRAY + "Artificer", Enchantment.CHANNELING, artLore, Material.FLINT);
+
 
         return menu;
     }
@@ -151,6 +157,9 @@ public class KitManager implements Listener {
                     break;
                 case HONEY_BOTTLE:
                     kits.put(p.getUniqueId(), new Grandpa(main, p, KitType.GRANDPA));
+                    break;
+                case FLINT:
+                    kits.put(p.getUniqueId(), new Artificer(main, p, KitType.ARTIFICER));
                     break;
                 default:
                     break;

@@ -130,6 +130,13 @@ public class Interact extends DefaultListener {
                 if (m == Material.HONEY_BOTTLE)
                     gr.drinkBooze();
             }
+            if (k instanceof Artificer) {
+                Artificer a = (Artificer) k;
+                if (m == Material.FLINT) {
+                }
+                if (m == Material.RIB_ARMOR_TRIM_SMITHING_TEMPLATE)
+                    a.flamethrowerShoot();
+            }
         }
 
     }
