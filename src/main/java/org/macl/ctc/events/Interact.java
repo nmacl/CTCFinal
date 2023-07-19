@@ -132,10 +132,12 @@ public class Interact extends DefaultListener {
             }
             if (k instanceof Artificer) {
                 Artificer a = (Artificer) k;
-                if (m == Material.FLINT) {
-                }
+                if (m == Material.FLINT);
+
                 if (m == Material.RIB_ARMOR_TRIM_SMITHING_TEMPLATE)
                     a.flamethrowerShoot();
+                if (m ==Material.FEATHER)
+                    a.upHeave();
             }
         }
 

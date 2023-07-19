@@ -1,5 +1,7 @@
 package org.macl.ctc.kits;
 
+import org.bukkit.inventory.meta.PotionMeta;
+import org.bukkit.potion.*;
 import org.bukkit.*;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -11,6 +13,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
+import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.RayTraceResult;
@@ -33,9 +36,15 @@ public class Artificer extends Kit {
         e.setLeggings(new ItemStack(Material.CHAINMAIL_LEGGINGS));
         e.setBoots(new ItemStack(Material.LEATHER_BOOTS));
         e.addItem(newItem(Material.RIB_ARMOR_TRIM_SMITHING_TEMPLATE, ChatColor.RED + "Flamethrower"));
-        e.addItem(newItem(Material.FISHING_ROD, ChatColor.GOLD + "Grappling Hook"));
+        e.addItem(new ItemStack(Material.TIPPED_ARROW) {{
+            PotionMeta meta = (PotionMeta) getItemMeta();
+            assert meta != null;
+            meta.setBasePotionData(new PotionData(PotionType.SLOWNESS));
+            meta.setDisplayName(ChatColor.BLUE + "Frost Dagger");
+            setItemMeta(meta);
+        }});
         e.addItem(newItem(Material.FLINT, ChatColor.GRAY + "Void Bomb"));
-        e.addItem(newItem(Material.FEATHER, "Wind Ability"));
+        e.addItem(newItem(Material.FEATHER, ChatColor.WHITE + "Updraft"));
         giveWool();
         giveWool();
     }
@@ -59,8 +68,8 @@ public class Artificer extends Kit {
             @Override
             public void run() {
                 // Flamethrower sounds
-                p.playSound(p.getLocation(), Sound.ENTITY_BLAZE_SHOOT, 1f, 1.5f);
-                p.playSound(p.getLocation(), Sound.BLOCK_DISPENSER_FAIL, 1f, 2f);
+                p.getWorld().playSound(p.getLocation(), Sound.ENTITY_BLAZE_SHOOT, 1f, 1.5f);
+                p.getWorld().playSound(p.getLocation(), Sound.BLOCK_DISPENSER_FAIL, 1f, 2f);
 
                 Location start = p.getEyeLocation();
                 Vector direction = p.getEyeLocation().getDirection();
@@ -94,11 +103,70 @@ public class Artificer extends Kit {
                 }
                 count++;
                 if (count >= repetitions) {
-                    p.playSound(p.getLocation(), Sound.BLOCK_LANTERN_BREAK, 2f, 0.5f);
+                    p.getWorld().playSound(p.getLocation(), Sound.BLOCK_LANTERN_BREAK, 2f, 0.5f);
                     cancel();
                 }
             }
         };
         task.runTaskTimer(main, delay, interval);
     }
-}
+    public void upHeave() {
+        e.setItem(3, newItem(Material.GUNPOWDER, ChatColor.GRAY + "Updraft..."));
+        p.setVelocity(p.getLocation().getDirection().multiply(0.5f));
+        p.setVelocity(p.getVelocity().setY(2f));
+        p.addPotionEffect(new PotionEffect(PotionEffectType.SLOW_FALLING, 20 * 8, 1));
+        p.getWorld().playSound(p.getLocation(), Sound.ENTITY_HORSE_BREATHE, 10f, 0.8f);
+        p.getWorld().playSound(p.getLocation(), Sound.ENTITY_HORSE_BREATHE, 10f, 0.4f);
+
+        for (Entity entity : p.getWorld().getEntities()) {
+            if (entity != p && entity.getLocation().distance(p.getLocation()) <= 6) {
+                Vector direction = entity.getLocation().toVector().subtract(p.getLocation().toVector()).normalize();
+                entity.setVelocity(direction.multiply(2));
+            }
+        }
+
+        double startRadius = 1;
+        double endRadius = 5;
+        int duration = 10;
+        int particles = 30;
+        Location center = p.getLocation().clone().add(0, 2, 0); // Adjust the starting location
+
+        double increment = 2 * Math.PI / particles;
+        double radiusIncrement = (endRadius - startRadius) / duration;
+
+        new BukkitRunnable() {
+                    double currentRadius = startRadius;
+                    int iterations = 0;
+                    double vOffset = 0.3;
+
+                    @Override
+                    public void run() {
+                        if (iterations >= duration) {
+                            vOffset = 0.3;
+                            cancel();
+                            return;
+                        }
+
+                        for (int j = 0; j < particles; j++) {
+                            double angle = j * increment;
+                            double x = center.getX() + currentRadius * Math.cos(angle);
+                            double z = center.getZ() + currentRadius * Math.sin(angle);
+                            Location particleLocation = new Location(center.getWorld(), x, center.getY(), z);
+                            p.spawnParticle(Particle.CLOUD, particleLocation, 0, 0, vOffset, 0);
+
+                        }
+                        vOffset -= 0.04;
+                        currentRadius += radiusIncrement;
+                        iterations++;
+                    }
+                }.runTaskTimer(main, 0, 1);
+        new BukkitRunnable(){
+            @Override
+            public void run(){
+                e.setItem(3, newItem(Material.FEATHER, ChatColor.WHITE + "Updraft"));
+                p.playSound(p.getLocation(),Sound.ENTITY_HORSE_BREATHE,1,1);
+
+            }
+        }.runTaskLater(main, 20*12);
+        }
+    }
