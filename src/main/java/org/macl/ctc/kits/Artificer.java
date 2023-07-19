@@ -1,6 +1,7 @@
 package org.macl.ctc.kits;
 
 import org.bukkit.block.Block;
+import org.bukkit.block.BlockFace;
 import org.bukkit.entity.*;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
@@ -21,6 +22,8 @@ import org.bukkit.util.RayTraceResult;
 import org.bukkit.util.Vector;
 import org.macl.ctc.Main;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class Artificer extends Kit {
@@ -188,11 +191,50 @@ public class Artificer extends Kit {
         item.setVelocity(direction.multiply(1.5));
 
         new BukkitRunnable() {
+
+            List<Block> blocksToRemove = new ArrayList<>();
+            double maxRadius = 4.0;
+            int maxIterations = 60;
+            int iteration = 0;
+
             @Override
             public void run() {
                 if (item.isOnGround()) {
-                    item.remove();
-                    this.cancel();
+                    Location center = item.getLocation();
+
+                    if (iteration < maxIterations) {
+                        double radius = (double) iteration / maxIterations * maxRadius;
+
+                        for (double x = -radius; x <= radius; x += 0.5) {
+                            for (double y = -radius; y <= radius; y += 0.5) {
+                                for (double z = -radius; z <= radius; z += 0.5) {
+                                    if (x * x + y * y + z * z <= radius * radius) {
+                                        center.getWorld().spawnParticle(Particle.SQUID_INK, center.getX() + x, center.getY() + y + 1, center.getZ() + z, 0);
+                                        Location blockLocation = center.clone().add(x, y, z);
+                                        Block block = blockLocation.getBlock();
+                                        blocksToRemove.add(block);
+                                    }
+                                }
+                            }
+                        }
+
+                        iteration++;
+                    } else {
+                        // Update neighboring blocks before removing blocks
+                        for (Block block : blocksToRemove) {
+                            for (BlockFace face : BlockFace.values()) {
+                                Block neighbor = block.getRelative(face);
+                                if (neighbor.getType() != Material.AIR && neighbor.getType() != Material.BLACK_CONCRETE) {
+                                    neighbor.setType(Material.BLACK_CONCRETE);
+                                }
+                            }
+                        }
+
+                        // Now remove the blocks
+                        for (Block block : blocksToRemove) {
+                            block.setType(Material.AIR);
+                        }
+                    }
                 }
             }
         }.runTaskTimer(main, 0, 1);
