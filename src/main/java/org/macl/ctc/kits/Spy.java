@@ -31,6 +31,7 @@ public class Spy extends Kit {
         p.getInventory().setItem(2, newItem(Material.BLAZE_ROD, ChatColor.DARK_GREEN + "Detonator"));
         int rod = p.getInventory().first(Material.BLAZE_ROD);
         p.getInventory().getItem(rod).addUnsafeEnchantment(Enchantment.FIRE_ASPECT, 1);
+        setHearts(12);
     }
 
     public Spy(Main main, Player p, KitType type) {

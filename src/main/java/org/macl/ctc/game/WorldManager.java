@@ -94,12 +94,10 @@ public class WorldManager {
         main.saveConfig();
     }
 
-    public Location getRed() {
-        return new Location(Bukkit.getWorld("map"), 0, 75, 152);
-    }
+    public Location getRed() { return main.getConfig().getLocation(map + ".red"); }
 
     public Location getBlue() {
-        return new Location(Bukkit.getWorld("map"), 4, 75, -147);
+        return main.getConfig().getLocation(map + ".blue");
     }
 
     public ArrayList<Location> getCenter() {

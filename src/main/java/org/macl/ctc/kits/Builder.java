@@ -1,6 +1,8 @@
 package org.macl.ctc.kits;
 
 import org.bukkit.*;
+import org.bukkit.attribute.Attribute;
+import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.block.BlockFace;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
@@ -38,7 +40,6 @@ public class Builder extends Kit {
         inv.setItem(0, newItem(Material.OAK_SLAB, ChatColor.DARK_GREEN + "3x2 wool bridge with packed ice"));
         inv.setItem(1, newItem(Material.OAK_STAIRS, ChatColor.LIGHT_PURPLE + "5x5 wool stairs"));
         inv.setItem(2, newItem(Material.LADDER, ChatColor.GOLD + "3x3 wool tower"));
-
     }
 
     public void openMenu() {

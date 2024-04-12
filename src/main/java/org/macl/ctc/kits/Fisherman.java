@@ -1,9 +1,13 @@
 package org.macl.ctc.kits;
 
+import net.minecraft.world.damagesource.DamageSource;
 import org.bukkit.*;
+import org.bukkit.attribute.Attribute;
+import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.block.Block;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.*;
+import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.Vector;
@@ -24,6 +28,7 @@ public class Fisherman extends Kit {
         e.addItem(newItem(Material.COD, ChatColor.LIGHT_PURPLE + "Cod Sniper"));
         giveWool();
         giveWool();
+        setHearts(16);
     }
     int timer = 0;
     int cod = 0;
@@ -31,60 +36,49 @@ public class Fisherman extends Kit {
     ArrayList<Location> locs = new ArrayList<Location>();
     Location shooter;
 
-    boolean canCod = true;
     ArrayList<UUID> lits = new ArrayList<UUID>();
 
     public void codSniper() {
-        if(!canCod)
+        if (isOnCooldown("cod")) {
             return;
-        canCod = false;
-        shooter = p.getLocation();
-        Entity e = p.getWorld().spawnEntity(p.getEyeLocation(), EntityType.COD);
-        Vector m = p.getLocation().getDirection().multiply(3);
+        }
+        setCooldown("cod", 10, Sound.ITEM_GOAT_HORN_SOUND_3, Sound.ENTITY_EXPERIENCE_ORB_PICKUP);
+        Location shooter = p.getLocation();  // Store shooter's location
+        Entity codEntity = p.getWorld().spawnEntity(p.getEyeLocation(), EntityType.COD);  // Spawn the COD at the eye location to avoid hitting the shooter
+        Vector velocity = p.getLocation().getDirection().multiply(2.5);  // Set the initial velocity
 
         new BukkitRunnable() {
             @Override
             public void run() {
-                canCod = true;
-                p.playSound(p.getLocation(), Sound.ITEM_GOAT_HORN_SOUND_1, 1f, 1f);
-            }
-        }.runTaskLater(main, 20*4);
-
-        new BukkitRunnable() {
-            @Override
-            public void run() {
-                p.getWorld().playSound(e.getLocation(), Sound.BLOCK_PACKED_MUD_FALL, 3f, 3f);
-                e.setVelocity(m);
-                Particle.DustOptions dustOptions = (main.game.redHas(p)) ? new Particle.DustOptions(Color.fromRGB(255, 0, 0), 3.0F) : new Particle.DustOptions(Color.fromRGB(0, 0, 255), 3.0F);
-                locs.add(e.getLocation());
-                for(Location loc : locs)
-                    p.getWorld().spawnParticle(Particle.REDSTONE, loc, 1, 0.35,0.2,0.35,0, dustOptions);
-                cod++;
-                if(cod >= 20*3.5 || e == null) {
-                    shooter = null;
+                if (!codEntity.isValid()) {  // Check if the entity is still valid
                     this.cancel();
-                    cod = 0;
-                    locs.clear();
-                    lits.clear();
                     return;
                 }
-                for(Entity e : e.getNearbyEntities(0.7, 0.7, 0.7)) {
-                    if(e instanceof Player) {
-                        Player p1 = (Player) e;
-                        if(p.getUniqueId() == p1.getUniqueId() && !lits.contains(p1.getUniqueId()))
-                            continue;
-                        double health = shooter.distance(p1.getLocation());
-                        health = health*0.7;
-                        if(health > 12)
-                            health = 12;
-                        if(p1.getHealth() - health >= 0)
-                            p1.setHealth(p1.getHealth() - health);
-                        else
-                            p1.setHealth(0);
-                        p1.getWorld().playSound(p1.getLocation(), Sound.BLOCK_BELL_USE, 5f, 5f);
-                        p1.getWorld().playSound(p.getLocation(), Sound.BLOCK_BELL_USE, 5f, 5f);
-                        e.remove();
-                        lits.add(p1.getUniqueId());
+
+                codEntity.setVelocity(velocity);
+                Particle.DustOptions dustOptions = main.game.redHas(p) ?
+                        new Particle.DustOptions(Color.fromRGB(255, 0, 0), 3.0F) :
+                        new Particle.DustOptions(Color.fromRGB(0, 0, 255), 3.0F);
+                p.getWorld().spawnParticle(Particle.REDSTONE, codEntity.getLocation(), 10, 0.35, 0.2, 0.35, 0.2, dustOptions);
+
+                for (Entity entity : codEntity.getNearbyEntities(0.7, 0.7, 0.7)) {
+                    if (entity instanceof Player && entity != p) {  // Exclude the shooter
+                        Player hitPlayer = (Player) entity;
+
+                        if (!lits.contains(hitPlayer.getUniqueId())) {
+                            double damage = 6;
+                            if(hitPlayer.getHealth() - 6 == 0)
+                                hitPlayer.setHealth(0);
+                            else
+                                hitPlayer.setHealth(hitPlayer.getHealth() - 6);
+                            hitPlayer.damage(1);
+
+                            hitPlayer.getWorld().playSound(hitPlayer.getLocation(), Sound.BLOCK_BELL_USE, 5f, 5f);
+                            lits.add(hitPlayer.getUniqueId());
+                            lits.clear();
+                            this.cancel();  // Stop the task
+                            return;
+                        }
                     }
                 }
             }
@@ -92,11 +86,10 @@ public class Fisherman extends Kit {
     }
 
 
-    boolean canPufferfish = true;
     public void pufferfishBomb() {
-        if(!canPufferfish)
+        if(isOnCooldown("pufferfish"))
             return;
-        canPufferfish = false;
+        setCooldown("pufferfish", 10, Sound.ENTITY_PUFFER_FISH_BLOW_UP, Sound.ENTITY_EXPERIENCE_ORB_PICKUP);
         ItemStack eggItem = e.getItemInMainHand();
         Location pLoc = p.getEyeLocation();
 
@@ -107,37 +100,17 @@ public class Fisherman extends Kit {
         thrownEggItem.setVelocity(pLoc.getDirection());
         e.setItemInMainHand(eggItem);
 
-
         new BukkitRunnable() {
             @Override
             public void run() {
                 timer++;
-                if(timer == 20 || thrownEggItem == null || thrownEggItem.getLocation().getY() <= -64) {
-                    this.cancel();
-                    p.getWorld().strikeLightning(thrownEggItem.getLocation());
-                    new BukkitRunnable() {
-                        @Override
-                        public void run() {
-                            canPufferfish = true;
-                            p.playSound(p.getLocation(), Sound.ENTITY_PUFFER_FISH_BLOW_UP, 1f, 1f);
-                        }
-                    }.runTaskLater(main, 20*10);
-                    return;
-                }
                 double y = thrownEggItem.getVelocity().getY();
-                if(y == 0) {
+                if(y == 0 || timer == 10) {
                     this.cancel();
                     for(int i = 0; i < 10; i++)
                         p.getWorld().spawnEntity(thrownEggItem.getLocation(), EntityType.PUFFERFISH);
                     thrownEggItem.remove();
-                    new BukkitRunnable() {
-                        @Override
-                        public void run() {
-                            canPufferfish = true;
-                            p.playSound(p.getLocation(), Sound.ENTITY_PUFFER_FISH_BLOW_UP, 1f, 1f);                        }
-                    }.runTaskLater(main, 20*10);
                 }
-
             }
         }.runTaskTimer(main, 0L, 5L);
     }

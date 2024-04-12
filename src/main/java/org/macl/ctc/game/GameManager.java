@@ -1,9 +1,13 @@
 package org.macl.ctc.game;
 
+import net.md_5.bungee.api.ChatMessageType;
+import net.md_5.bungee.api.chat.TextComponent;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.attribute.Attribute;
+import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.block.Block;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
@@ -75,19 +79,46 @@ public class GameManager {
     }
     private void setup(Player p) {
         teleportSpawn(p);
+        clearPlayerDisplays();
         kit.openMenu(p);
+        AttributeInstance attribute = p.getAttribute(Attribute.GENERIC_MAX_HEALTH);
+        attribute.setBaseValue(20.0);
         p.setHealth(20);
         for(PotionEffect g : p.getActivePotionEffects())
             p.removePotionEffect(g.getType());
     }
 
+    public void clearPlayerDisplays() {
+        // Clear the action bar for all players
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            player.spigot().sendMessage(ChatMessageType.ACTION_BAR, new TextComponent(""));
+
+            // Clear the sidebar display
+            Scoreboard scoreboard = player.getScoreboard();
+            if (scoreboard != null) {
+                DisplaySlot slot = DisplaySlot.SIDEBAR;
+                Objective sidebarObjective = scoreboard.getObjective(slot);
+                if (sidebarObjective != null) {
+                    sidebarObjective.unregister(); // Unregister the sidebar objective
+                }
+            }
+
+            // Optionally set a new blank scoreboard if you don't want players to revert to seeing the main scoreboard
+            Scoreboard newBoard = Bukkit.getScoreboardManager().getNewScoreboard();
+            player.setScoreboard(newBoard);
+        }
+    }
+
+
     public void stop(Player p) {
         world.clean(p);
         clean();
+        clearPlayerDisplays();
         kit.kits.clear();
         started = false;
         starting = false;
         center = 0;
+
     }
     public void stack(Player p) {
         p.teleport(p.getWorld().getSpawnLocation());
@@ -296,6 +327,8 @@ public class GameManager {
             PlayerInventory e = p.getInventory();
             e.setArmorContents(null);
             e.clear();
+            AttributeInstance attribute = p.getAttribute(Attribute.GENERIC_MAX_HEALTH);
+            attribute.setBaseValue(20.0);
             p.setHealth(20);
             p.setFireTicks(0);
             for(PotionEffect potions : p.getActivePotionEffects())

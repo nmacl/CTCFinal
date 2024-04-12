@@ -78,18 +78,13 @@ public class Interact extends DefaultListener {
                 Demolitionist d = (Demolitionist) k;
                 if(m == Material.CARROT_ON_A_STICK)
                     d.launchSheep();
-                if(m == Material.EGG)
-                    if(d.cooldowns.get("egg")) {
+                if(m == Material.EGG) {
+                    if(kit.kits.get(p.getUniqueId()).isOnCooldown("egg")) {
                         event.setCancelled(true);
                     } else {
-                        d.cooldowns.put("egg", true);
-                        new BukkitRunnable() {
-                            @Override
-                            public void run() {
-                                d.cooldowns.put("egg", false);
-                            }
-                        }.runTaskLater(main, 6*20L);
+                        kit.kits.get(p.getUniqueId()).setCooldown("egg", 2, Sound.ENTITY_CHICKEN_EGG, Sound.ENTITY_EXPERIENCE_ORB_PICKUP);
                     }
+                }
             }
             if(k instanceof Builder) {
                 Builder b = (Builder) k;
@@ -120,6 +115,12 @@ public class Interact extends DefaultListener {
                     f.pufferfishBomb();
                 if(m == Material.COD)
                     f.codSniper();
+            }
+
+            if(k instanceof Engineer) {
+                Engineer e = (Engineer) k;
+                if(m == Material.IRON_SHOVEL)
+                    e.overload();
             }
         }
 
@@ -153,6 +154,7 @@ public class Interact extends DefaultListener {
                     public void run() {
                         event.getClickedBlock().getLocation().getWorld().getBlockAt(event.getClickedBlock().getLocation()).setType(Material.AIR);
                         p.getLocation().getWorld().createExplosion(event.getClickedBlock().getLocation(), 5f);
+                        main.fakeExplode(l, 24, 8);
                     }
                 }.runTaskLater(main, 20*2L);
             }

@@ -1,6 +1,8 @@
 package org.macl.ctc.kits;
 
 import org.bukkit.*;
+import org.bukkit.attribute.Attribute;
+import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.entity.Arrow;
@@ -14,8 +16,6 @@ import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scheduler.BukkitTask;
 import org.macl.ctc.Main;
-import org.macl.ctc.timers.cooldownTimer;
-
 import java.util.ArrayList;
 
 public class Tank extends Kit {
@@ -39,8 +39,8 @@ public class Tank extends Kit {
         giveWool();
         giveWool();
         p.removePotionEffect(PotionEffectType.SPEED);
-        cooldowns.put("hellfire", false);
-        cooldowns.put("gatling", false);
+        setHearts(28);
+        p.setHealth(28);
     }
     ArrayList<Location> locs = new ArrayList<>();
 
@@ -114,7 +114,7 @@ public class Tank extends Kit {
     int usage = 0;
 
     public void gatling(BlockFace face) {
-        if(cooldowns.get("gatling"))
+        if(isOnCooldown("gatling") || inHellfire)
             return;
         if(!setup) {
             if(locs != null) {
@@ -186,7 +186,7 @@ public class Tank extends Kit {
 
 
     public void shield(Block placedBlock, BlockFace playerFacing) {
-        if(shieldOn == true) return;
+        if(shieldOn == true || gatling || inHellfire) return;
         shieldOn = true;
 
 
@@ -247,7 +247,7 @@ public class Tank extends Kit {
 
     int count = 0;
     public void hellfire() {
-        if(inHellfire || cooldowns.get("hellfire"))
+        if(inHellfire || isOnCooldown("hellfire"))
             return;
         new BukkitRunnable() {
             @Override
@@ -260,8 +260,9 @@ public class Tank extends Kit {
                 p.getWorld().spawnParticle(Particle.DRIP_LAVA, p.getLocation(), 20);
             }
         }.runTaskTimer(main, 0L, 1L);
+
         p.getWorld().playSound(p.getLocation(), Sound.BLOCK_NOTE_BLOCK_DIDGERIDOO, 5f, 1f);
-        new cooldownTimer(this, 20*20, "hellfire", p.getInventory().getItem(1)).runTaskTimer(main, 0L, 1L);
+        setCooldown("hellfire", 20, Sound.BLOCK_LAVA_POP, Sound.ENTITY_EXPERIENCE_ORB_PICKUP);
         inHellfire = true;
         previousLoc = p.getLocation();
 
@@ -303,7 +304,7 @@ public class Tank extends Kit {
     }
 
     public void exit() {
-        new cooldownTimer(this, 20*10, "gatling", p.getInventory().getItem(0)).runTaskTimer(main, 0L, 1L);
+        setCooldown("gatling", 20, Sound.ENTITY_IRON_GOLEM_ATTACK, Sound.ENTITY_EXPERIENCE_ORB_PICKUP);
 
         new BukkitRunnable() {
             @Override
@@ -326,8 +327,6 @@ public class Tank extends Kit {
                 setup = false;
                 gatling = false;
                 usage = 0;
-
-
             }
         }.runTaskLater(main, 2L);
     }

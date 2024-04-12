@@ -1,18 +1,25 @@
 package org.macl.ctc.events;
 
 import org.bukkit.Bukkit;
+import org.bukkit.Chunk;
+import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.attribute.Attribute;
+import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.block.Block;
+import org.bukkit.damage.DamageSource;
 import org.bukkit.entity.*;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.entity.*;
 import org.bukkit.event.player.*;
+import org.bukkit.event.world.ChunkLoadEvent;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.util.Vector;
 import org.macl.ctc.Main;
 import org.macl.ctc.kits.Demolitionist;
+import org.macl.ctc.kits.Engineer;
 import org.macl.ctc.kits.Kit;
 import org.macl.ctc.kits.Spy;
 
@@ -115,8 +122,13 @@ public class Players extends DefaultListener {
                 event.setDamage(2.25);
             if (event.getDamager() instanceof Snowball)
                 event.setDamage(1.25);
-            if(event.getDamager() instanceof Egg)
+            if(event.getDamager() instanceof Egg) {
+                if(p.getHealth() - 11 < 0)
+                    p.setHealth(0);
+                else
+                    p.setHealth(p.getHealth() - 11);
                 p.getWorld().createExplosion(event.getEntity().getLocation(), 1.54f, false);
+            }
         }
     }
 
@@ -131,6 +143,7 @@ public class Players extends DefaultListener {
         Player p = event.getPlayer();
         if(event.getTo().getBlock().getType() == Material.NETHER_PORTAL)
             game.stack(p);
+        Player player = event.getPlayer();
     }
 
     @EventHandler
@@ -142,6 +155,8 @@ public class Players extends DefaultListener {
     public void death(PlayerDeathEvent event) {
         event.setDeathMessage(main.prefix + event.getDeathMessage());
         event.getDrops().clear();
+        if(kit.kits.get(event.getEntity().getUniqueId()) != null)
+            kit.kits.get(event.getEntity().getUniqueId()).cancelAllCooldowns();
         kit.remove(event.getEntity());
     }
 
@@ -150,6 +165,30 @@ public class Players extends DefaultListener {
         Player p = event.getPlayer();
         p.teleport(p.getWorld().getSpawnLocation());
         game.respawn(p);
+        AttributeInstance playerAttribute = p.getAttribute(Attribute.GENERIC_MAX_HEALTH);
+        playerAttribute.setBaseValue(20);
+    }
+
+    @EventHandler
+    public void onPlayerDamage(EntityDamageEvent event) {
+        if (event.getEntity() instanceof Player) {
+            Player player = (Player) event.getEntity();
+            if(event.getCause() == EntityDamageEvent.DamageCause.BLOCK_EXPLOSION || event.getCause() == EntityDamageEvent.DamageCause.ENTITY_EXPLOSION)
+                event.setDamage(0);
+            // Check if the player is wearing any armor
+            if (isWearingArmor(player)) {
+                // Calculate damage as if no armor is worn
+                event.setDamage(EntityDamageEvent.DamageModifier.ARMOR, 0);
+            }
+        }
+    }
+
+    private boolean isWearingArmor(Player player) {
+        return player.getInventory().getArmorContents() != null &&
+                (player.getInventory().getHelmet() != null ||
+                        player.getInventory().getChestplate() != null ||
+                        player.getInventory().getLeggings() != null ||
+                        player.getInventory().getBoots() != null);
     }
 
 

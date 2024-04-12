@@ -19,6 +19,7 @@ import org.bukkit.event.world.WorldSaveEvent;
 import org.bukkit.event.world.WorldUnloadEvent;
 import org.bukkit.util.Vector;
 import org.macl.ctc.Main;
+import org.macl.ctc.kits.Engineer;
 import org.macl.ctc.kits.Spy;
 import org.macl.ctc.kits.Tank;
 
@@ -62,6 +63,8 @@ public class Blocks extends DefaultListener {
                     game.stop(p);
             }
         }
+        Block block = event.getBlock();
+        Location loc = block.getLocation();
     }
 
     @EventHandler
@@ -83,6 +86,17 @@ public class Blocks extends DefaultListener {
             Tank t = (Tank) main.getKits().get(p.getUniqueId());
             t.shield(event.getBlock(), p.getFacing());
         }
+        if(main.getKits().get(p.getUniqueId()) != null && main.getKits().get(p.getUniqueId()) instanceof Engineer) {
+            Engineer e = (Engineer) main.getKits().get(p.getUniqueId());
+            if(event.getBlock().getType() == Material.DISPENSER) {
+                event.setCancelled(true);
+                e.turret();
+            }
+            if(event.getBlock().getType() == Material.BEACON) {
+                e.placeTeleport(p, b.getLocation());
+            }
+        }
+
     }
 
 
@@ -124,8 +138,9 @@ public class Blocks extends DefaultListener {
             return;
         if(event.getEntity().getShooter() instanceof Player && event.getEntity() instanceof Egg) {
             Player p = (Player) event.getEntity().getShooter();
-            if(b != null)
-                b.getLocation().getWorld().createExplosion(b.getLocation().add(0, 1.3, 0), 1.9f);
+            if(b != null) {
+                main.fakeExplode(b.getLocation(), 10, 6);
+            }
 
         }
         if(event.getEntity().getShooter() instanceof Player && event.getEntity() instanceof Arrow) {

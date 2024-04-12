@@ -1,10 +1,9 @@
 package org.macl.ctc.kits;
 
 import net.minecraft.world.entity.animal.Cod;
-import org.bukkit.ChatColor;
-import org.bukkit.Location;
-import org.bukkit.Material;
-import org.bukkit.Particle;
+import org.bukkit.*;
+import org.bukkit.attribute.Attribute;
+import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.block.Block;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Entity;
@@ -16,7 +15,6 @@ import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.Vector;
 import org.macl.ctc.Main;
-import org.macl.ctc.timers.cooldownTimer;
 
 import java.util.ArrayList;
 
@@ -31,24 +29,25 @@ public class Runner extends Kit {
         e.setLeggings(new ItemStack(Material.IRON_LEGGINGS, 1));
         e.setBoots(new ItemStack(Material.LEATHER_BOOTS, 1));
         p.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, 999999999, 0));
-        cooldowns.put("blockRun", false);
         giveWool();
         giveWool();
+        setHearts(16);
     }
     ArrayList<Block> blocks = new ArrayList<Block>();
     public void blockRun() {
-        if(!cooldowns.get("blockRun")) {
-            new cooldownTimer(this, 18*20, "blockRun", sword)
+        if(!isOnCooldown("Block Run")) {
+            new BukkitRunnable()
             {
+                int timer = 0;
                 int exp = 50;
                 @Override
                 public void run() {
-                    if(main.getKits().get(p.getUniqueId()) == null || !(main.getKits().get(p.getUniqueId()) instanceof Runner)) {
+                    timer++;
+                    if(main.getKits().get(p.getUniqueId()) == null) {
                         this.cancel();
                         return;
                     }
-                    super.run();
-                    if(timer > 13*20) {
+                    if(timer < 7*20) {
                         exp++;
                         playExp((exp)*0.01f);
                         for(int i = -1; i <= 3; i++) {
@@ -65,6 +64,8 @@ public class Runner extends Kit {
                     } else {
                         for(Block b : blocks)
                             b.setType(Material.AIR);
+                        this.cancel();
+                        setCooldown("Block Run", 18, Sound.BLOCK_CHAIN_STEP, Sound.ENTITY_EXPERIENCE_ORB_PICKUP);
                         return;
                     }
                 }
@@ -78,9 +79,8 @@ public class Runner extends Kit {
     boolean polarOn = false;
 
     public void polarField() {
-        if(polarOn)
+        if(isOnCooldown("Deflection Field"))
             return;
-        polarOn = true;
         new BukkitRunnable() {
             @Override
             public void run() {
@@ -92,12 +92,7 @@ public class Runner extends Kit {
                     ticks = 0;
                     this.cancel();
                     es.clear();
-                    new BukkitRunnable() {
-                        @Override
-                        public void run() {
-                            polarOn = false;
-                        }
-                    }.runTaskLater(main, 20*15L);
+                    setCooldown("Deflection Field", 16, Sound.BLOCK_SNOW_STEP, Sound.ENTITY_EXPERIENCE_ORB_PICKUP);
                     return;
                 }
                 for(Entity e : p.getNearbyEntities(2.5, 2.5, 2.5)) {

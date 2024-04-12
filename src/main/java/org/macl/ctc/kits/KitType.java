@@ -8,5 +8,6 @@ public enum KitType {
     BUILDER,
     RUNNER,
     TANK,
-    FISHERMAN
+    FISHERMAN,
+    ENGINEER
 }

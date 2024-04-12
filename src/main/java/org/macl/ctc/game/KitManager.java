@@ -3,6 +3,7 @@ package org.macl.ctc.game;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
+import org.bukkit.Sound;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -13,23 +14,25 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryView;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.scheduler.BukkitRunnable;
 import org.macl.ctc.Main;
 import org.macl.ctc.events.DefaultListener;
 import org.macl.ctc.kits.*;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 
 public class KitManager implements Listener {
     Main main;
-    //public ArrayList<Kit> kits = new ArrayList<>();
     public HashMap<UUID, Kit> kits = new HashMap<UUID, Kit>();
+
     public KitManager(Main main) {
         this.main = main;
         main.listens.add(this);
     }
+
+    /*
+        Kit Manager
+     */
 
     public KitMenu getMenu() {
         KitMenu menu = new KitMenu(main.prefix + "Kit Menu", 9);
@@ -82,6 +85,14 @@ public class KitManager implements Listener {
 
         menu.setItem(7, ChatColor.DARK_AQUA + "Fisherman", Enchantment.LUCK, fishLore, Material.FISHING_ROD);
 
+        List<String> engineerLore = Arrays.asList(
+                ChatColor.GRAY + "Engineer's Wrench",
+                ChatColor.WHITE + "Sentry Gun",
+                ChatColor.BLUE + "Teleporters"
+        );
+
+        menu.setItem(8, ChatColor.DARK_GRAY + "Engineer", Enchantment.DIG_SPEED, engineerLore, Material.DISPENSER);
+
 
         return menu;
     }
@@ -111,7 +122,7 @@ public class KitManager implements Listener {
         InventoryView view = event.getView();
         ItemStack click = event.getCurrentItem();
         //if(main.game.started != true)
-          //  return;
+        //  return;
 
         if(main.game.started)
             event.setCancelled(true);
@@ -142,6 +153,9 @@ public class KitManager implements Listener {
                     break;
                 case FISHING_ROD:
                     kits.put(p.getUniqueId(), new Fisherman(main, p, KitType.FISHERMAN));
+                    break;
+                case DISPENSER:
+                    kits.put(p.getUniqueId(), new Engineer(main, p, KitType.ENGINEER));
                     break;
                 default:
                     break;

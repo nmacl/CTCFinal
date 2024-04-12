@@ -1,19 +1,19 @@
 package org.macl.ctc.kits;
 
 import net.minecraft.world.entity.Entity;
-import org.bukkit.ChatColor;
-import org.bukkit.DyeColor;
-import org.bukkit.Material;
-import org.bukkit.Sound;
-import org.bukkit.craftbukkit.v1_20_R1.entity.CraftEntity;
+import org.bukkit.*;
+import org.bukkit.block.BlockFace;
+import org.bukkit.craftbukkit.v1_20_R3.entity.CraftEntity;
+import org.bukkit.craftbukkit.v1_20_R3.entity.CraftPlayer;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Sheep;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.scheduler.BukkitRunnable;
+import org.bukkit.util.RayTraceResult;
+import org.bukkit.util.Vector;
 import org.macl.ctc.Main;
-import org.macl.ctc.timers.cooldownTimer;
 
 public class Demolitionist extends Kit {
 
@@ -26,7 +26,7 @@ public class Demolitionist extends Kit {
 
     public Demolitionist(Main main, Player p, KitType type) {
         super(main, p, type);
-        //CraftPlayer craft = (CraftPlayer) p;
+        CraftPlayer craft = (CraftPlayer) p;
         PlayerInventory e = p.getInventory();
         e.addItem(newItem(Material.STONE_SHOVEL, ChatColor.MAGIC + "OEIHRIOQW"));
         e.setHelmet(newItem(Material.CHAINMAIL_HELMET, ""));
@@ -37,20 +37,19 @@ public class Demolitionist extends Kit {
         e.addItem(sheepItem);
         new eggReplenish(this, p, main).runTaskTimer(main, 0L, 20L);
         giveWool();
-        cooldowns.put("sheep", false);
-        cooldowns.put("egg", false);
+
+        setHearts(24);
     }
 
     public void launchSheep() {
-        if(cooldowns.get("sheep"))
+        if(isOnCooldown("sheep"))
             return;
         Sheep g = (Sheep) p.getLocation().getWorld().spawnEntity(p.getLocation(), EntityType.SHEEP);
         g.setVelocity(p.getLocation().getDirection().multiply(1.35f));
         g.setBaby();
         g.setInvulnerable(true);
         new sheepLaunch(g).runTaskTimer(main, 0L, 1L);
-        new cooldownTimer(this, 20*25, "sheep", sheepItem).runTaskTimer(main, 0L, 1L);
-        cooldowns.put("sheep", true);
+        setCooldown("sheep", 25, Sound.ENTITY_TNT_PRIMED, Sound.ENTITY_EXPERIENCE_ORB_PICKUP);
     }
 
     public class sheepLaunch extends BukkitRunnable {
@@ -91,10 +90,8 @@ public class Demolitionist extends Kit {
             if(timer == 80)
                 sheep.setColor(DyeColor.BLACK);
             if(timer == 100) {
-                if(!sheep.isDead())
-                    sheep.getLocation().getWorld().createExplosion(sheep.getLocation().add(0,1,0), 4f);
+                main.fakeExplode(sheep.getLocation(), 20, 8);
                 sheep.setHealth(0);
-
                 this.cancel();
             }
         }
@@ -124,10 +121,14 @@ public class Demolitionist extends Kit {
             }
             eggTime++;
 
-
+            int m = p.getInventory().first(Material.EGG);
+            ItemStack stack = p.getInventory().getItem(m);
             if(eggTime == 30) {
-                addEgg();
-                eggTime = 0;
+                assert stack != null;
+                if (stack.getAmount() < 4) {
+                    addEgg();
+                    eggTime = 0;
+                }
             }
         }
 
