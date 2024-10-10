@@ -1,5 +1,6 @@
 package org.macl.ctc;
 
+import net.md_5.bungee.api.chat.ClickEvent;
 import org.bukkit.*;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -22,16 +23,16 @@ import org.macl.ctc.game.KitManager;
 import org.macl.ctc.game.WorldManager;
 import org.macl.ctc.kits.Kit;
 
-import java.awt.*;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+import net.md_5.bungee.api.chat.TextComponent;
 
 public final class Main extends JavaPlugin implements CommandExecutor {
 
 
-    public String map = "map";
+    public String map = "sandstone";
 
     public GameManager game;
     public WorldManager worldManager;
@@ -74,8 +75,24 @@ public final class Main extends JavaPlugin implements CommandExecutor {
         new Blocks(this);
         new Players(this);
 
+        worldManager.loadWorld("map", "sandstone");
+
         for(Listener i : listens)
             getServer().getPluginManager().registerEvents(i, this);
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                TextComponent message = new TextComponent("discord click this");
+                TextComponent link = new TextComponent("https://discord.gg/Qeme8MUXBY");
+                link.setClickEvent(new ClickEvent(ClickEvent.Action.OPEN_URL, "https://discord.gg/Qeme8MUXBY"));
+                link.setColor(net.md_5.bungee.api.ChatColor.AQUA);
+                link.setUnderlined(true);
+
+                message.addExtra(link);
+
+                Bukkit.spigot().broadcast(message);
+            }
+        }.runTaskTimer(this, 0L, 180*20);
         // Setup map / game
     }
     /*private Map<Location, Location> teleporterPairs = new HashMap<>();
@@ -130,37 +147,42 @@ public final class Main extends JavaPlugin implements CommandExecutor {
                 World w = Bukkit.getWorld(args[1]);
                 p.teleport(w.getSpawnLocation());
             } else if(args[0].equalsIgnoreCase("start")) {
-
+                game.start();
             }
             // change later so I can do maps (world manager)
             if(args[0].equalsIgnoreCase("red")) {
-                worldManager.setRed(p);
+                String Map = args[1];
+                worldManager.setRed(p, Map);
             } else if(args[0].equalsIgnoreCase("blue")) {
-                worldManager.setBlue(p);
+                String Map = args[1];
+                worldManager.setBlue(p, Map);
             } else if(args[0].equalsIgnoreCase("center")) {
-                worldManager.setCenter(p);
-            } else if(args[0].equalsIgnoreCase("locs")) {
-                Bukkit.broadcastMessage(worldManager.getRed().toString() + worldManager.getBlue().toString());
-            } else if(args[0].equalsIgnoreCase("gatling")) {
-
-            } else if(args[0].equalsIgnoreCase("direction")) {
+                String Map = args[1];
+                worldManager.setCenter(p, Map);
+            }  else if(args[0].equalsIgnoreCase("direction")) {
                 broadcast(p.getLocation().getDirection().toString());
             } else if(args[0].equalsIgnoreCase("kit")) {
                 kit.openMenu(p);
+            } else if(args[0].equalsIgnoreCase("map")) {
+                map = args[1];
+                worldManager.loadWorld("map", map);
+                broadcast(args[1]);
+            } else if (args[0].equalsIgnoreCase("tp")) {
+                if(Bukkit.getWorld(args[1]) != null) {
+                    p.teleport(Bukkit.getWorld(args[1]).getSpawnLocation());
+                    broadcast("teleport");
+                }
             }
-
-            // reset world
-
         }
 
         // If the player (or console) uses our command correct, we can return true
         return true;
     }
 
-    public void fakeExplode(Location l, int maxDamage, int maxDistance) {
+    public void fakeExplode(Player p, Location l, int maxDamage, int maxDistance, boolean damage1, boolean fire) {
         Location center = l.add(0, 1, 0); // Center of explosion
         World world = center.getWorld();
-        world.createExplosion(center, 4f, false, false); // Visual explosion only
+        world.createExplosion(center, 2f, damage1, fire); // Visual explosion only
 
         int numberOfRays = 6; // Total number of rays to cast
         double[] offsets = {0, 1, 2, 3, 4, 5}; // Vertical offsets for ray casting
@@ -168,6 +190,8 @@ public final class Main extends JavaPlugin implements CommandExecutor {
         for (org.bukkit.entity.Entity entity : world.getNearbyEntities(center, maxDistance, maxDistance, maxDistance)) {
             if (entity instanceof Player) {
                 Player player = (Player) entity;
+                if(player.getUniqueId() == p.getUniqueId())
+                    continue;
                 Location playerLocation = player.getLocation();
 
                 double distance = center.distance(playerLocation);
@@ -208,7 +232,7 @@ public final class Main extends JavaPlugin implements CommandExecutor {
         ItemStack crusher = new ItemStack(Material.DIAMOND_PICKAXE, 1);
         ItemMeta meta = crusher.getItemMeta();
         meta.setDisplayName(ChatColor.AQUA + "" + ChatColor.BOLD + "CORE CRUSHER");
-        meta.addEnchant(Enchantment.DIG_SPEED, 1, true);
+        meta.addEnchant(Enchantment.DIG_SPEED, 5, false);
         crusher.setItemMeta(meta);
         return crusher;
     }

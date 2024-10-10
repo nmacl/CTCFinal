@@ -7,6 +7,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.event.player.PlayerItemHeldEvent;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.Vector;
@@ -23,14 +24,19 @@ public class Interact extends DefaultListener {
         switch(event.getAction()) {
             case PHYSICAL:
                 physical(event);
+                break;
             case RIGHT_CLICK_BLOCK:
                 rightClick(event);
+                break;
             case RIGHT_CLICK_AIR:
                 rightClick(event);
+                break;
             case LEFT_CLICK_BLOCK:
                 leftClick(event);
+                break;
             case LEFT_CLICK_AIR:
                 leftClick(event);
+                break;
             default:
                 break;
 
@@ -57,6 +63,13 @@ public class Interact extends DefaultListener {
         Material m = event.getPlayer().getInventory().getItemInMainHand().getType();
         if (kit.kits.get(p.getUniqueId()) != null) {
             Kit k = kit.kits.get(p.getUniqueId());
+            if(k instanceof Grandpa) {
+                Grandpa ga = (Grandpa) k;
+                if(m == Material.PRISMARINE_SHARD)
+                    ga.shootGun();
+                else if(m == Material.HONEY_BOTTLE)
+                    ga.drinkBooze();
+            }
             if (k instanceof Snowballer) {
                 Snowballer snowball = (Snowballer) k;
                 if (m == Material.GOLDEN_HOE)
@@ -82,7 +95,7 @@ public class Interact extends DefaultListener {
                     if(kit.kits.get(p.getUniqueId()).isOnCooldown("egg")) {
                         event.setCancelled(true);
                     } else {
-                        kit.kits.get(p.getUniqueId()).setCooldown("egg", 2, Sound.ENTITY_CHICKEN_EGG, Sound.ENTITY_EXPERIENCE_ORB_PICKUP);
+                        kit.kits.get(p.getUniqueId()).setCooldown("egg", 2, Sound.ENTITY_EXPERIENCE_ORB_PICKUP);
                     }
                 }
             }
@@ -123,7 +136,15 @@ public class Interact extends DefaultListener {
                     e.overload();
             }
         }
+    }
 
+    @EventHandler
+    public void itemSwitch(PlayerItemHeldEvent event) {
+        Player p = event.getPlayer();
+        if(kit.kits.get(p.getUniqueId()) != null && kit.kits.get(p.getUniqueId()) instanceof Archer) {
+            Archer a = (Archer) kit.kits.get(p.getUniqueId());
+            a.handleItemSwitch(event);
+        }
     }
 
     public void physical(PlayerInteractEvent event) {
@@ -153,8 +174,8 @@ public class Interact extends DefaultListener {
                     @Override
                     public void run() {
                         event.getClickedBlock().getLocation().getWorld().getBlockAt(event.getClickedBlock().getLocation()).setType(Material.AIR);
-                        p.getLocation().getWorld().createExplosion(event.getClickedBlock().getLocation(), 5f);
-                        main.fakeExplode(l, 24, 8);
+                        p.getLocation().getWorld().createExplosion(event.getClickedBlock().getLocation(), 5f, true);
+                        main.fakeExplode(p, l, 24, 8, true, true);
                     }
                 }.runTaskLater(main, 20*2L);
             }

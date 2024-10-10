@@ -33,9 +33,11 @@ public class Runner extends Kit {
         giveWool();
         setHearts(16);
     }
+
     ArrayList<Block> blocks = new ArrayList<Block>();
     public void blockRun() {
         if(!isOnCooldown("Block Run")) {
+            setCooldown("Block Run", 18, Sound.ENTITY_EXPERIENCE_ORB_PICKUP);
             new BukkitRunnable()
             {
                 int timer = 0;
@@ -65,7 +67,6 @@ public class Runner extends Kit {
                         for(Block b : blocks)
                             b.setType(Material.AIR);
                         this.cancel();
-                        setCooldown("Block Run", 18, Sound.BLOCK_CHAIN_STEP, Sound.ENTITY_EXPERIENCE_ORB_PICKUP);
                         return;
                     }
                 }
@@ -81,6 +82,7 @@ public class Runner extends Kit {
     public void polarField() {
         if(isOnCooldown("Deflection Field"))
             return;
+        setCooldown("Deflection Field", 16, Sound.ENTITY_EXPERIENCE_ORB_PICKUP);
         new BukkitRunnable() {
             @Override
             public void run() {
@@ -92,7 +94,6 @@ public class Runner extends Kit {
                     ticks = 0;
                     this.cancel();
                     es.clear();
-                    setCooldown("Deflection Field", 16, Sound.BLOCK_SNOW_STEP, Sound.ENTITY_EXPERIENCE_ORB_PICKUP);
                     return;
                 }
                 for(Entity e : p.getNearbyEntities(2.5, 2.5, 2.5)) {

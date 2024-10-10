@@ -51,70 +51,29 @@ public class Engineer extends Kit {
             chestplate.setItemMeta(meta);
         }
         p.getInventory().setChestplate(chestplate);
-        e.addItem(newItem(Material.IRON_SHOVEL, ChatColor.RED + "Wrench"));
-        //e.addItem(newItem(Material.BEACON, ChatColor.DARK_GREEN + "Teleporter", 2));
-        e.addItem(newItem(Material.DISPENSER, ChatColor.BOLD + "Snowman Turret"));
+        ItemStack Flare = new ItemStack(Material.FIREWORK_ROCKET, 64);
+        FireworkMeta fwm = (FireworkMeta)Flare.getItemMeta();
+        FireworkEffect effect;
+        if(main.game.redHas(p)) {
+            effect = FireworkEffect.builder().withColor(Color.RED).with(FireworkEffect.Type.BALL_LARGE).withFlicker().trail(false).build();
+        } else {
+            effect = FireworkEffect.builder().withColor(Color.BLUE).with(FireworkEffect.Type.BALL_LARGE).withFlicker().trail(false).build();
+        }
+        fwm.addEffects(effect);
+        fwm.setPower(1);
+        Flare.setItemMeta(fwm);
+        e.setItemInOffHand(Flare);
+        ArrayList<Enchantment> es = new ArrayList<Enchantment>();
+        es.add(Enchantment.MULTISHOT);
+        es.add(Enchantment.QUICK_CHARGE);
+        ItemStack crossbow = newItemEnchants(Material.CROSSBOW, "Firework Shotgun", es, 1);
+        e.addItem(crossbow);
+        regenItem("turret", newItem(Material.DISPENSER, ChatColor.BOLD + "Snowman Turret"), 40, 2, 1);
+        giveWool();
+        giveWool();
     }
 
-    public void placeTeleport(Player p, Location loc) {
-        if (!canPlaceTeleport) {
-            p.sendMessage(ChatColor.RED + "Teleporters are on cooldown!");
-            return;
-        }
-
-        if (loc1 == null) {
-            loc1 = loc.clone().add(0, 1, 0);
-            p.sendMessage(ChatColor.GREEN + "Teleporter 1 placed!");
-        } else if (loc2 == null) {
-            loc2 = loc.clone().add(0, 1, 0);
-            p.sendMessage(ChatColor.GREEN + "Teleporter 2 placed!");
-            canPlaceTeleport = false; // Disable further placement
-
-            new BukkitRunnable() {
-                @Override
-                public void run() {
-                    canPlaceTeleport = true; // Enable placement after cooldown
-                }
-            }.runTaskLater(main, 200L); // 10 seconds cooldown (20 ticks = 1 second)
-        }
-
-        buildTeleporterBase(loc);
-    }
-
-    public void teleport(Player p, Location to) {
-        if (!canTeleport) {
-            p.sendMessage(ChatColor.RED + "Teleporter is recharging!");
-            return;
-        }
-
-        Location destination = null;
-        if (to.getBlock().equals(loc1.getBlock())) destination = loc2.clone().add(0, 1, 0);
-        if (to.getBlock().equals(loc2.getBlock())) destination = loc1.clone().add(0, 1, 0);
-
-        if (destination != null) {
-            p.teleport(destination);
-            p.playSound(destination, Sound.ENTITY_ENDERMAN_TELEPORT, 1f, 1f);
-            canTeleport = false; // Disable teleportation
-
-            new BukkitRunnable() {
-                @Override
-                public void run() {
-                    canTeleport = true; // Enable teleportation after cooldown
-                }
-            }.runTaskLater(main, 160L); // 8 seconds cooldown
-        }
-    }
-
-    private void buildTeleporterBase(Location loc) {
-        for (int i = -1; i <= 1; i++) {
-            for (int j = -1; j <= 1; j++) {
-                loc.clone().add(i, -1, j).getBlock().setType(Material.IRON_BLOCK);
-            }
-        }
-        loc.getBlock().setType(Material.BEACON);
-    }
-
-    public void turret() {
+    public void turret(Location l) {
         CraftWorld w = (CraftWorld) p.getLocation().getWorld();
         SnowmanTurret s = new SnowmanTurret(EntityType.SNOW_GOLEM, w.getHandle(), p.getLocation());
         Snowman s1 = (Snowman) s.getBukkitEntity();
@@ -130,7 +89,7 @@ public class Engineer extends Kit {
             public void run() {
                 Location l = p.getLocation().add(0,2,0);
                 World w = l.getWorld();
-                Vector dir = p.getLocation().getDirection().multiply(2.4);
+                Vector dir = p.getLocation().getDirection().multiply(1.8);
                 timer++;
                 if(timer > 120) {
                     this.cancel();

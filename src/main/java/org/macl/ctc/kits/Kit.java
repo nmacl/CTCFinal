@@ -2,6 +2,7 @@ package org.macl.ctc.kits;
 
 import net.md_5.bungee.api.ChatMessageType;
 import net.md_5.bungee.api.chat.TextComponent;
+import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.Sound;
@@ -29,15 +30,27 @@ public class Kit implements Listener {
     PlayerInventory e;
 
     public Material wool = Material.WHITE_WOOL;
-
-    public HashMap<String, Boolean> cooldown = new HashMap<String, Boolean>();
     private HashMap<String, Cooldown> cooldowns = new HashMap<>();
+    private HashMap<String, RegenItem> regenItems = new HashMap<>();
+
+    public void regenItem(String name, ItemStack item, int seconds, int maxAmt, int slot) {
+        RegenItem regen = new RegenItem(this, p, name, item, seconds, maxAmt, slot);
+        regenItems.put(name, regen);
+    }
+
 
     public void cancelAllCooldowns() {
         for (Cooldown cooldown : cooldowns.values()) {
             cooldown.cancel();
         }
         cooldowns.clear(); // Optionally clear all entries if they are no longer needed
+    }
+
+    public void cancelAllRegen() {
+        for (RegenItem regens : regenItems.values()) {
+            regens.cancel();
+        }
+        regenItems.clear();
     }
 
     public void setHearts(double d) {
@@ -66,6 +79,44 @@ public class Kit implements Listener {
         if(main.game.blueHas(p)) {
             wool = Material.BLUE_WOOL;
         }
+        AttributeInstance playerAttribute = p.getAttribute(Attribute.GENERIC_MAX_HEALTH);
+        playerAttribute.setBaseValue(20);
+    }
+
+
+    private void showCooldownProgress(int seconds, String abilityName) {
+        new BukkitRunnable() {
+            int timeLeft = seconds;
+
+            @Override
+            public void run() {
+                if (timeLeft <= 0) {
+                    this.cancel();
+                    return;
+                }
+
+                double progress = (double) (seconds - timeLeft) / seconds;
+                String progressIndicator = getProgressIndicator(progress);
+
+                p.spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacyText(ChatColor.WHITE + abilityName + " " + progressIndicator));
+                timeLeft--;
+            }
+        }.runTaskTimer(main, 0L, 20L);
+    }
+
+    private String getProgressIndicator(double progress) {
+        StringBuilder sb = new StringBuilder();
+        int stages = 10;
+        int currentStage = (int) (progress * stages);
+
+        for (int i = 0; i < stages; i++) {
+            if (i < currentStage) {
+                sb.append(ChatColor.GREEN).append("|");
+            } else {
+                sb.append(ChatColor.RED).append("|");
+            }
+        }
+        return sb.toString();
     }
 
     /**
@@ -73,13 +124,12 @@ public class Kit implements Listener {
      * @param ability The name of the ability.
      * @param seconds The duration of the cooldown in seconds.
      * @param startSound The sound to play when the cooldown starts.
-     * @param endSound The sound to play when the cooldown ends.
      */
-    public void setCooldown(String ability, int seconds, Sound startSound, Sound endSound) {
+    public void setCooldown(String ability, int seconds, Sound startSound) {
         if (cooldowns.containsKey(ability)) {
             cooldowns.get(ability).cancel();  // Cancel any existing cooldown
         }
-        Cooldown cooldown = new Cooldown(this, p, ability, seconds, startSound, endSound, () -> {
+        Cooldown cooldown = new Cooldown(this, p, ability, seconds, startSound, () -> {
             p.sendMessage(ChatColor.GREEN + "Cooldown for " + ability + " is over!");
             cooldowns.remove(ability);  // Remove the cooldown when it's finished
         });
@@ -103,13 +153,12 @@ public class Kit implements Listener {
         private String abilityName;
         private int timeLeft;  // Declare timeLeft as an instance variable
 
-        public Cooldown(Kit kit, Player player, String abilityName, int seconds, Sound startSound, Sound endSound, Runnable onComplete) {
+        public Cooldown(Kit kit, Player player, String abilityName, int seconds, Sound endSound, Runnable onComplete) {
             this.player = player;
             this.abilityName = abilityName;
             this.originalTime = seconds;
             this.active = true;
-            this.timeLeft = seconds;  // Initialize timeLeft here
-            player.playSound(player.getLocation(), startSound, 1, 1);
+            this.timeLeft = seconds;
 
             task = new BukkitRunnable() {
                 public void run() {
@@ -172,12 +221,105 @@ public class Kit implements Listener {
                 message.append(cooldown.getProgressIndicator()).append(" ");
             }
         });
+        regenItems.forEach((name, regen) -> {
+            if (regen.isActive()) {
+                message.append(ChatColor.WHITE).append(ChatColor.BOLD).append(name.toUpperCase()).append(" ");
+                message.append(regen.getProgressIndicator()).append(" ");
+            }
+        });
+
         if (!message.toString().isEmpty()) {
             p.spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacyText(message.toString()));
         }
     }
 
+    class RegenItem {
+        private Player player;
+        private BukkitTask task;
+        private ItemStack item;
+        private int maxAmt;
+        private int slot;
+        private String itemName;
+        private int originalTime;
+        private int timeLeft;
+        private boolean active;
 
+        public RegenItem(Kit kit, Player player, String itemName, ItemStack item, int seconds, int maxAmt, int slot) {
+            this.player = player;
+            this.itemName = itemName;
+            this.item = item;
+            this.maxAmt = maxAmt;
+            this.slot = slot;
+            this.originalTime = seconds;
+            this.timeLeft = seconds;
+            this.active = true;
+
+            task = new BukkitRunnable() {
+                public void run() {
+                    if (!active || !player.isOnline() || player.isDead()) {
+                        this.cancel();
+                        return;
+                    }
+
+                    int itemCount = getCurrentItemCount();
+
+                    // Check if the item count is below maximum allowed
+                    if (itemCount < maxAmt) {
+                        if (timeLeft <= 0) {
+                            item.setAmount(itemCount + 1);
+                            player.getInventory().setItem(slot, item);
+                            timeLeft = originalTime;
+                        } else {
+                            timeLeft--;
+                        }
+                        kit.updateCooldowns(); // Update all cooldown displays to show progress
+                    } else {
+                        // If max amount reached, do not reset the timer but stop decrementing
+                        timeLeft = originalTime;
+                    }
+                }
+            }.runTaskTimer(kit.main, 0L, 20L);
+        }
+
+        private int getCurrentItemCount() {
+            int itemCount = 0;
+            for (ItemStack stack : player.getInventory().getContents()) {
+                if (stack != null && stack.isSimilar(item)) {
+                    itemCount += stack.getAmount();
+                }
+            }
+            return itemCount;
+        }
+
+        public String getProgressIndicator() {
+            if (getCurrentItemCount() >= maxAmt) {
+                return ""; // No indicator if at max amount
+            }
+            double progress = (double) (originalTime - timeLeft) / originalTime;
+            StringBuilder sb = new StringBuilder();
+            int stages = 10;
+            int currentStage = (int) (progress * stages);
+            for (int i = 0; i < stages; i++) {
+                if (i < currentStage) {
+                    sb.append(ChatColor.GREEN).append("|");
+                } else {
+                    sb.append(ChatColor.RED).append("|");
+                }
+            }
+            return sb.toString();
+        }
+
+        public boolean isActive() {
+            return active && getCurrentItemCount() < maxAmt;
+        }
+
+        public void cancel() {
+            if (task != null) {
+                task.cancel();
+                active = false;
+            }
+        }
+    }
 
     //Setup with parameters instead of arguments String[] params
 

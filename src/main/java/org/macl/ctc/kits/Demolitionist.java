@@ -23,6 +23,8 @@ public class Demolitionist extends Kit {
     int sheepTime = 0;
 
     public ItemStack sheepItem = newItem(Material.CARROT_ON_A_STICK, ChatColor.DARK_RED +"" + ChatColor.BOLD+ "Sheep Launcher");
+    ItemStack grenade = newItem(Material.EGG, ChatColor.RED + "Egg Grenade");
+    ItemStack mine = newItem(Material.STONE_PRESSURE_PLATE, ChatColor.GRAY + "Mine");
 
     public Demolitionist(Main main, Player p, KitType type) {
         super(main, p, type);
@@ -35,9 +37,9 @@ public class Demolitionist extends Kit {
         e.addItem(newItem(Material.EGG, ChatColor.RED + "Egg Grenade", 3));
         e.addItem(newItem(Material.STONE_PRESSURE_PLATE, ChatColor.GRAY + "Mine", 3));
         e.addItem(sheepItem);
-        new eggReplenish(this, p, main).runTaskTimer(main, 0L, 20L);
         giveWool();
-
+        regenItem("grenade", grenade, 10, 3, 1);
+        regenItem("mine", mine, 16, 3, 2);
         setHearts(24);
     }
 
@@ -49,7 +51,7 @@ public class Demolitionist extends Kit {
         g.setBaby();
         g.setInvulnerable(true);
         new sheepLaunch(g).runTaskTimer(main, 0L, 1L);
-        setCooldown("sheep", 25, Sound.ENTITY_TNT_PRIMED, Sound.ENTITY_EXPERIENCE_ORB_PICKUP);
+        setCooldown("sheep", 25, Sound.ENTITY_TNT_PRIMED);
     }
 
     public class sheepLaunch extends BukkitRunnable {
@@ -90,51 +92,10 @@ public class Demolitionist extends Kit {
             if(timer == 80)
                 sheep.setColor(DyeColor.BLACK);
             if(timer == 100) {
-                main.fakeExplode(sheep.getLocation(), 20, 8);
+                main.fakeExplode(p, sheep.getLocation(), 20, 8, true, true);
                 sheep.setHealth(0);
                 this.cancel();
             }
         }
-    }
-
-
-    public class eggReplenish extends BukkitRunnable {
-
-
-        Main main;
-
-        Demolitionist d;
-
-        Player p;
-
-        public eggReplenish(Demolitionist d, Player p, Main main) {
-            this.p = p;
-            this.main = main;
-            this.d = d;
-        }
-
-        @Override
-        public void run() {
-            if(p == null || p.isDead() || main.getKits().get(p.getUniqueId()) == null || !(main.getKits().get(p.getUniqueId()) instanceof Demolitionist)) {
-                this.cancel();
-                return;
-            }
-            eggTime++;
-
-            int m = p.getInventory().first(Material.EGG);
-            ItemStack stack = p.getInventory().getItem(m);
-            if(eggTime == 30) {
-                assert stack != null;
-                if (stack.getAmount() < 4) {
-                    addEgg();
-                    eggTime = 0;
-                }
-            }
-        }
-
-        public void addEgg() {
-            p.getInventory().addItem(newItem(Material.EGG, ChatColor.RED + "Egg Grenade"));
-        }
-
     }
 }

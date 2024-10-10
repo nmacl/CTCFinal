@@ -42,7 +42,7 @@ public class Fisherman extends Kit {
         if (isOnCooldown("cod")) {
             return;
         }
-        setCooldown("cod", 10, Sound.ITEM_GOAT_HORN_SOUND_3, Sound.ENTITY_EXPERIENCE_ORB_PICKUP);
+        setCooldown("cod", 3, Sound.ENTITY_EXPERIENCE_ORB_PICKUP);
         Location shooter = p.getLocation();  // Store shooter's location
         Entity codEntity = p.getWorld().spawnEntity(p.getEyeLocation(), EntityType.COD);  // Spawn the COD at the eye location to avoid hitting the shooter
         Vector velocity = p.getLocation().getDirection().multiply(2.5);  // Set the initial velocity
@@ -67,6 +67,7 @@ public class Fisherman extends Kit {
 
                         if (!lits.contains(hitPlayer.getUniqueId())) {
                             double damage = 6;
+                            //fix health -4
                             if(hitPlayer.getHealth() - 6 == 0)
                                 hitPlayer.setHealth(0);
                             else
@@ -89,7 +90,7 @@ public class Fisherman extends Kit {
     public void pufferfishBomb() {
         if(isOnCooldown("pufferfish"))
             return;
-        setCooldown("pufferfish", 10, Sound.ENTITY_PUFFER_FISH_BLOW_UP, Sound.ENTITY_EXPERIENCE_ORB_PICKUP);
+        setCooldown("pufferfish", 10, Sound.ENTITY_EXPERIENCE_ORB_PICKUP);
         ItemStack eggItem = e.getItemInMainHand();
         Location pLoc = p.getEyeLocation();
 

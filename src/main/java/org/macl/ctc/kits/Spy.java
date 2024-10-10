@@ -1,11 +1,9 @@
 package org.macl.ctc.kits;
 
-import org.bukkit.ChatColor;
-import org.bukkit.Location;
-import org.bukkit.Material;
-import org.bukkit.Sound;
+import org.bukkit.*;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitRunnable;
@@ -43,9 +41,10 @@ public class Spy extends Kit {
         p.getInventory().addItem(newItem(Material.RED_CANDLE, ChatColor.DARK_RED + "Remote Explosive", 1));
         giveWool();
         giveWool();
-        new regenPearl().runTaskTimer(main, 0L, 20L);
+        regenItem("cloak", newItem(Material.ENDER_PEARL, ChatColor.DARK_PURPLE + "Cloak (Teleport)"), 40, 2, 1);
         new spyInvis().runTaskTimer(main, 0L, 1L);
         p.getInventory().remove(Material.DIAMOND_PICKAXE);
+        setHearts(14);
     }
 
     public void detonate() {
@@ -64,7 +63,7 @@ public class Spy extends Kit {
         int ticks = 0;
 
         public void run() {
-            if(p.isDead()) {
+            if(!p.isOnline() || p.isDead() || (main.getKits().get(p.getUniqueId()) == null || !(main.getKits().get(p.getUniqueId()) instanceof Spy))) {
                 this.cancel();
                 return;
             }
@@ -89,7 +88,7 @@ public class Spy extends Kit {
                 return;
             }
             if(timer == 35) {
-                detonate.getWorld().createExplosion(detonate, 4f, true);
+                main.fakeExplode(p, getDetonate(), 18, 6, true, false);
                 this.cancel();
                 detonate = null;
                 new BukkitRunnable() {
@@ -111,27 +110,6 @@ public class Spy extends Kit {
         }
 
     }
-
-    public class regenPearl extends BukkitRunnable {
-        int timer = 0;
-
-        public void run() {
-            timer++;
-            if(p.isDead() || main.getKits().get(p.getUniqueId()) != null && main.getKits().get(p.getUniqueId()) instanceof Spy) {
-                this.cancel();
-                return;
-            }
-            if(timer == 45) {
-                int pearl = p.getInventory().first(Material.ENDER_PEARL);
-                if(p.getInventory().getItem(pearl).getAmount() == 3)
-                    return;
-
-                p.getInventory().setItem(pearl, newItem(Material.ENDER_PEARL, ChatColor.DARK_PURPLE + "Cloak (Teleport)", p.getInventory().getItem(pearl).getAmount()+1));
-            }
-
-        }
-    }
-
 
 
 }

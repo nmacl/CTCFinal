@@ -10,6 +10,8 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
+import org.bukkit.event.inventory.InventoryOpenEvent;
+import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryView;
 import org.bukkit.inventory.ItemStack;
@@ -35,7 +37,7 @@ public class KitManager implements Listener {
      */
 
     public KitMenu getMenu() {
-        KitMenu menu = new KitMenu(main.prefix + "Kit Menu", 9);
+        KitMenu menu = new KitMenu(main.prefix + "Kit Menu", 18);
         List<String> gLore = createLore(ChatColor.DARK_PURPLE + "Cane: Knockback 10",
                 ChatColor.LIGHT_PURPLE + "Cookies: Right click player to heal",
                 ChatColor.RED + "No speed");
@@ -85,14 +87,21 @@ public class KitManager implements Listener {
 
         menu.setItem(7, ChatColor.DARK_AQUA + "Fisherman", Enchantment.LUCK, fishLore, Material.FISHING_ROD);
 
-        List<String> engineerLore = Arrays.asList(
+        /*List<String> engineerLore = Arrays.asList(
                 ChatColor.GRAY + "Engineer's Wrench",
                 ChatColor.WHITE + "Sentry Gun",
                 ChatColor.BLUE + "Teleporters"
         );
 
-        menu.setItem(8, ChatColor.DARK_GRAY + "Engineer", Enchantment.DIG_SPEED, engineerLore, Material.DISPENSER);
+        menu.setItem(8, ChatColor.DARK_GRAY + "Engineer", Enchantment.DIG_SPEED, engineerLore, Material.DISPENSER);*/
 
+        List<String> grandpaLore = Arrays.asList(
+                ChatColor.GOLD + "Booze",
+                ChatColor.GRAY + "Slugged Shotgun",
+                ChatColor.DARK_GREEN + "Veteran of many battles"
+        );
+
+        menu.setItem(8, ChatColor.LIGHT_PURPLE + "Grandpa", Enchantment.DAMAGE_ALL, grandpaLore, Material.HONEY_BOTTLE);
 
         return menu;
     }
@@ -112,8 +121,23 @@ public class KitManager implements Listener {
     @EventHandler
     public void close(InventoryCloseEvent event) {
         Player p = (Player) event.getPlayer();
+        Bukkit.broadcastMessage("debug close");
         if(kits.get(p.getUniqueId()) == null && main.game.started && (main.game.redHas(p) || main.game.blueHas(p)) && event.getView().getTitle().equalsIgnoreCase(main.prefix + "Kit Menu"))
             kits.put(p.getUniqueId(), new Snowballer(main, p, KitType.SNOWBALLER));
+    }
+
+    @EventHandler
+    public void open(InventoryOpenEvent event) {
+        if(event.getView().getTitle().equalsIgnoreCase("Chest")) {
+            event.setCancelled(true);
+            openMenu((Player) event.getPlayer());
+        }
+    }
+
+    @EventHandler
+    public void dropItem(PlayerDropItemEvent event) {
+        if(main.game.started)
+            event.setCancelled(true);
     }
 
     @EventHandler
@@ -129,6 +153,11 @@ public class KitManager implements Listener {
         if(view.getTitle().equals(main.prefix + "Kit Menu")) {
             if(click == null)
                 return;
+            if(kits.get(p.getUniqueId()) != null) {
+                kits.get(p.getUniqueId()).cancelAllCooldowns();
+                kits.get(p.getUniqueId()).cancelAllRegen();
+            }
+
             switch(click.getType()) {
                 case SNOWBALL:
                     kits.put(p.getUniqueId(), new Snowballer(main, p, KitType.SNOWBALLER));
@@ -154,8 +183,14 @@ public class KitManager implements Listener {
                 case FISHING_ROD:
                     kits.put(p.getUniqueId(), new Fisherman(main, p, KitType.FISHERMAN));
                     break;
-                case DISPENSER:
-                    kits.put(p.getUniqueId(), new Engineer(main, p, KitType.ENGINEER));
+                case HONEY_BOTTLE:
+                    kits.put(p.getUniqueId(), new Grandpa(main, p, KitType.GRANDPA));
+                    break;
+               // case DISPENSER:
+                    //kits.put(p.getUniqueId(), new Engineer(main, p, KitType.ENGINEER));
+                    //break;
+                case BOW:
+                    kits.put(p.getUniqueId(), new Archer(main, p, KitType.ARCHER));
                     break;
                 default:
                     break;
@@ -163,6 +198,7 @@ public class KitManager implements Listener {
             event.setCancelled(true);
             p.closeInventory();
         }
+
         if(view.getTitle().equalsIgnoreCase(main.prefix + "BuildTools")) {
             if(main.getKits().get(p.getUniqueId()) != null && main.getKits().get(p.getUniqueId()) instanceof Builder) {
                 Builder b = (Builder) main.getKits().get(p.getUniqueId());
@@ -230,7 +266,6 @@ public class KitManager implements Listener {
 
     public void remove(Player p) {
         if(kits.get(p.getUniqueId()) != null) {
-            main.broadcast("remove");
             kits.remove(p.getUniqueId());
         }
     }

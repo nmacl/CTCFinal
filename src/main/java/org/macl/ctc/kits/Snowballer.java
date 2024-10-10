@@ -69,7 +69,7 @@ public class Snowballer extends Kit {
         if(!isOnCooldown("Rocket Jump")) {
             p.setVelocity(p.getLocation().getDirection().multiply(2.3f));
             new rocketTrail().runTaskTimer(main, 0L, 1L);
-            setCooldown("Rocket Jump", 15, Sound.ENTITY_BLAZE_SHOOT, Sound.ENTITY_EXPERIENCE_ORB_PICKUP);
+            setCooldown("Rocket Jump", 10, Sound.ENTITY_EXPERIENCE_ORB_PICKUP);
         }
     }
 

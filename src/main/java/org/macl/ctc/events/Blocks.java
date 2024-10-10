@@ -1,14 +1,14 @@
 package org.macl.ctc.events;
 
-import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
-import org.bukkit.Location;
-import org.bukkit.Material;
+import org.bukkit.*;
+import org.bukkit.Color;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
+import org.bukkit.boss.BossBar;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Arrow;
 import org.bukkit.entity.Egg;
+import org.bukkit.entity.Firework;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.block.*;
@@ -17,6 +17,7 @@ import org.bukkit.event.entity.ProjectileHitEvent;
 import org.bukkit.event.world.WorldLoadEvent;
 import org.bukkit.event.world.WorldSaveEvent;
 import org.bukkit.event.world.WorldUnloadEvent;
+import org.bukkit.inventory.meta.FireworkMeta;
 import org.bukkit.util.Vector;
 import org.macl.ctc.Main;
 import org.macl.ctc.kits.Engineer;
@@ -46,27 +47,74 @@ public class Blocks extends DefaultListener {
 
     @EventHandler
     public void blockBreak(BlockBreakEvent event) {
-        if(main.restricted.contains(event.getBlock().getType()))
+        Player player = event.getPlayer();
+        Block block = event.getBlock();
+        if(main.restricted.contains(event.getBlock().getType()) && main.game.started)
             event.setCancelled(true);
-        event.setDropItems(false);
         game.resetCenter();
-        Player p = event.getPlayer();
-        Block b = event.getBlock();
 
-        if(b.getType() == Material.OBSIDIAN && main.game.started && p.getInventory().getItemInMainHand().getType() == Material.DIAMOND_PICKAXE) {
-            ArrayList<Material> blocs = getNearbyBlocks(b.getLocation(), 5);
-            for(Material m : blocs) {
-                //FIX CONSOLE ERROR, maybe cancel event?
-                if(game.redHas(p) && game.center == 1 && m == Material.LAPIS_ORE)
-                    game.stop(p);
-                if(game.blueHas(p) && game.center == 2 && m == Material.REDSTONE_ORE)
-                    game.stop(p);
+        event.setDropItems(false);
+
+        // Additional game logic, e.g., resetting center (if necessary)
+
+        // Handling obsidian specific logic
+        if(block.getType() == Material.OBSIDIAN && main.game.started && player.getInventory().getItemInMainHand().getType() == Material.DIAMOND_PICKAXE) {
+            ArrayList<Material> nearbyBlocks = getNearbyBlocks(block.getLocation(), 5);  // Assume getNearbyBlocks is implemented elsewhere
+
+            for(Material m : nearbyBlocks) {
+                if((game.redHas(player) && game.center == 1 && m == Material.LAPIS_ORE) ||
+                        (game.blueHas(player) && game.center == 2 && m == Material.REDSTONE_ORE)) {
+                    // Decrement core health and update boss bar here directly, if applicable
+                    if (m == Material.LAPIS_ORE) {
+                        game.blueCoreHealth--;
+                        main.broadcast(ChatColor.BLUE + "The blue core has been damaged!");
+                        triggerEffects(player.getLocation());
+                        game.updateScoreboard();
+                        break;
+                    } else if (m == Material.REDSTONE_ORE) {
+                        game.redCoreHealth--;
+                        main.broadcast(ChatColor.RED + "The red core has been damaged!");
+                        triggerEffects(player.getLocation());
+                        game.updateScoreboard();
+                        break;
+                    }
+                }
+            }
+            if(game.blueCoreHealth <= 0 || game.redCoreHealth <= 0) {
+                main.broadcast(ChatColor.BOLD + "A core has been destroyed!");
+                game.stop(player);
             }
         }
-        Block block = event.getBlock();
-        Location loc = block.getLocation();
+    }
+    private void triggerEffects(Location location) {
+        blowBackPlayers(location, 8);
+        launchFirework(location);
+        playWitherSoundForAll();
     }
 
+    private void blowBackPlayers(Location center, double radius) {
+        for (Player p : center.getWorld().getPlayers()) {
+            if (p.getLocation().distance(center) <= radius) {
+                Vector direction = p.getLocation().getDirection().normalize().multiply(-1);
+                p.setVelocity(direction.multiply(1.5).setY(1));
+            }
+        }
+    }
+
+    private void launchFirework(Location location) {
+        Firework firework = location.getWorld().spawn(location, Firework.class);
+        FireworkMeta meta = firework.getFireworkMeta();
+        meta.setPower(2);
+        meta.addEffect(FireworkEffect.builder().withColor(Color.WHITE).with(FireworkEffect.Type.BURST).build());
+        firework.setFireworkMeta(meta);
+        firework.detonate();
+    }
+
+    private void playWitherSoundForAll() {
+        for (Player p : Bukkit.getOnlinePlayers()) {
+            p.getWorld().playSound(p.getLocation(), Sound.ENTITY_WITHER_SPAWN, 1.0F, 1.0F);
+        }
+    }
     @EventHandler
     public void blockPlace(BlockPlaceEvent event) {
         Block b = event.getBlock();
@@ -89,11 +137,7 @@ public class Blocks extends DefaultListener {
         if(main.getKits().get(p.getUniqueId()) != null && main.getKits().get(p.getUniqueId()) instanceof Engineer) {
             Engineer e = (Engineer) main.getKits().get(p.getUniqueId());
             if(event.getBlock().getType() == Material.DISPENSER) {
-                event.setCancelled(true);
-                e.turret();
-            }
-            if(event.getBlock().getType() == Material.BEACON) {
-                e.placeTeleport(p, b.getLocation());
+                e.turret(b.getLocation());
             }
         }
 
@@ -139,7 +183,7 @@ public class Blocks extends DefaultListener {
         if(event.getEntity().getShooter() instanceof Player && event.getEntity() instanceof Egg) {
             Player p = (Player) event.getEntity().getShooter();
             if(b != null) {
-                main.fakeExplode(b.getLocation(), 10, 6);
+                main.fakeExplode(p, b.getLocation(), 8, 6, false, true);
             }
 
         }

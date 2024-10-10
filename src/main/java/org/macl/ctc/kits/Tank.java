@@ -144,7 +144,7 @@ public class Tank extends Kit {
                         usage++;
                         ItemStack item = e.getItem(0);
                         int dmg = usage*20;
-
+                        //error
                         if(dmg >= item.getType().getMaxDurability()) {
                             usage = 0;
                             exit();
@@ -262,7 +262,7 @@ public class Tank extends Kit {
         }.runTaskTimer(main, 0L, 1L);
 
         p.getWorld().playSound(p.getLocation(), Sound.BLOCK_NOTE_BLOCK_DIDGERIDOO, 5f, 1f);
-        setCooldown("hellfire", 20, Sound.BLOCK_LAVA_POP, Sound.ENTITY_EXPERIENCE_ORB_PICKUP);
+        setCooldown("hellfire", 20, Sound.ENTITY_EXPERIENCE_ORB_PICKUP);
         inHellfire = true;
         previousLoc = p.getLocation();
 
@@ -284,7 +284,7 @@ public class Tank extends Kit {
                         }
                         time++;
                         if(time > 20*25 || (p.getFallDistance() == 0 && time > 80) ) {
-                            p.getWorld().createExplosion(p.getLocation(), 2f, true);
+                            main.fakeExplode(p, p.getLocation(), 15, 10, false, false);
                             p.setInvulnerable(false);
                             p.teleport(previousLoc);
                             previousLoc = null;
@@ -304,7 +304,7 @@ public class Tank extends Kit {
     }
 
     public void exit() {
-        setCooldown("gatling", 20, Sound.ENTITY_IRON_GOLEM_ATTACK, Sound.ENTITY_EXPERIENCE_ORB_PICKUP);
+        setCooldown("gatling", 20, Sound.ENTITY_EXPERIENCE_ORB_PICKUP);
 
         new BukkitRunnable() {
             @Override

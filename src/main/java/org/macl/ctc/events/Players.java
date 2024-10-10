@@ -12,16 +12,14 @@ import org.bukkit.entity.*;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.entity.*;
+import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.player.*;
 import org.bukkit.event.world.ChunkLoadEvent;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.util.Vector;
 import org.macl.ctc.Main;
-import org.macl.ctc.kits.Demolitionist;
-import org.macl.ctc.kits.Engineer;
-import org.macl.ctc.kits.Kit;
-import org.macl.ctc.kits.Spy;
+import org.macl.ctc.kits.*;
 
 public class Players extends DefaultListener {
     public Players(Main main) {
@@ -37,14 +35,13 @@ public class Players extends DefaultListener {
     @EventHandler
     public void playerJoinReal(PlayerJoinEvent event) {
         Player p = event.getPlayer();
-        p.teleport(Bukkit.getWorld("world").getSpawnLocation());
+        game.resetPlayer(p, false);
     }
 
     @EventHandler
     public void playerQuit(PlayerQuitEvent event) {
-        // Handle player leaving mid game (rebalance teams)
         Player p = event.getPlayer();
-        game.stack(p);
+        main.broadcast("quit event " + game.resetPlayer(p, true));
     }
 
     @EventHandler
@@ -53,6 +50,13 @@ public class Players extends DefaultListener {
         if(proj instanceof EnderPearl && proj.getShooter() instanceof Player) {
             EnderPearl e = (EnderPearl) proj;
             e.setPassenger((Player)proj.getShooter());
+        }
+        if(proj instanceof Arrow && proj.getShooter() instanceof Player) {
+            Player p = (Player) proj.getShooter();
+            if(kit.kits.get(p.getUniqueId()) instanceof Archer) {
+                Archer a = (Archer) kit.kits.get(p.getUniqueId());
+                a.shoot(event);
+            }
         }
     }
 
@@ -84,29 +88,46 @@ public class Players extends DefaultListener {
             Player p = (Player) event.getEntity();
             if(event.getCause() == EntityDamageEvent.DamageCause.VOID)
                 p.setHealth(0);
-            if(event.getCause() == EntityDamageEvent.DamageCause.LIGHTNING)
-                event.setCancelled(true);
             if(main.getKits().get(p.getUniqueId()) != null && main.getKits().get(p.getUniqueId()) instanceof Spy) {
-                main.broadcast("spy damaged");
                 ((Spy) main.getKits().get(p.getUniqueId())).uninvis();
             }
-
-
         }
     }
+
+    @EventHandler
+    public void projectileHit(ProjectileHitEvent event) {
+        if(event.getEntity() instanceof Arrow && event.getEntity().getShooter() instanceof Player) {
+            Player p = (Player) event.getEntity().getShooter();
+            if(kit.kits.get(p.getUniqueId()) instanceof Archer) {
+                Archer a = (Archer) kit.kits.get(p.getUniqueId());
+                a.bHit(event);
+            }
+        }
+    }
+
+
 
     public void onEggThrow(PlayerEggThrowEvent e) {
         e.setHatching(false);
     }
 
 
-        @EventHandler
+    @EventHandler
     public void itemBreak(PlayerItemBreakEvent event) {
         event.getBrokenItem().setDurability((short)3);
     }
 
     @EventHandler
     public void onEntityHit(EntityDamageByEntityEvent event) {
+        if(event.getDamager() instanceof Arrow) {
+            Arrow arrow = (Arrow) event.getDamager();
+            event.setDamage(2.25);
+        }
+        if (event.getDamager() instanceof Snowball)
+            event.setDamage(1.25);
+        if(event.getDamager() instanceof Egg)
+            event.getEntity().getWorld().createExplosion(event.getEntity().getLocation(), 2f, false, true);
+
         if(event.getEntity() instanceof Player) {
             Player p = (Player) event.getEntity();
             if(event.getDamager() instanceof Player) {
@@ -117,17 +138,13 @@ public class Players extends DefaultListener {
                     p.addPotionEffect(new PotionEffect(PotionEffectType.BLINDNESS, 20*2, 0));
                     p.addPotionEffect(new PotionEffect(PotionEffectType.POISON, 20 * 3, 2));
                 }
-            }
-            if(event.getDamager() instanceof Arrow)
-                event.setDamage(2.25);
-            if (event.getDamager() instanceof Snowball)
-                event.setDamage(1.25);
-            if(event.getDamager() instanceof Egg) {
-                if(p.getHealth() - 11 < 0)
-                    p.setHealth(0);
-                else
-                    p.setHealth(p.getHealth() - 11);
-                p.getWorld().createExplosion(event.getEntity().getLocation(), 1.54f, false);
+                if(event.getDamager() instanceof Egg) {
+                    if(p.getHealth() - 6 < 0) {
+                        p.setHealth(0);
+                    } else {
+                        p.setHealth(p.getHealth() - 6);
+                    }
+                }
             }
         }
     }
@@ -143,7 +160,23 @@ public class Players extends DefaultListener {
         Player p = event.getPlayer();
         if(event.getTo().getBlock().getType() == Material.NETHER_PORTAL)
             game.stack(p);
-        Player player = event.getPlayer();
+        if(!main.game.started)
+            return;
+        double strength = 1.5;
+        if(event.getTo().getWorld() != world.getRed().getWorld())
+            return;
+        if(game.redHas(p) && (event.getTo().distance(world.getBlue()) < 30)) {
+            p.sendMessage("away");
+            Vector dir = world.getBlue().toVector().subtract(p.getLocation().toVector()).normalize();
+            dir.multiply(-1);
+            p.setVelocity(dir.multiply(strength));
+        }
+        if(game.blueHas(p) && (event.getTo().distance((world.getRed())) < 30)) {
+            p.sendMessage("away");
+            Vector dir = world.getRed().toVector().subtract(p.getLocation().toVector()).normalize();
+            dir.multiply(-1);
+            p.setVelocity(dir.multiply(strength));
+        }
     }
 
     @EventHandler
@@ -155,8 +188,10 @@ public class Players extends DefaultListener {
     public void death(PlayerDeathEvent event) {
         event.setDeathMessage(main.prefix + event.getDeathMessage());
         event.getDrops().clear();
-        if(kit.kits.get(event.getEntity().getUniqueId()) != null)
+        if(kit.kits.get(event.getEntity().getUniqueId()) != null) {
             kit.kits.get(event.getEntity().getUniqueId()).cancelAllCooldowns();
+            kit.kits.get(event.getEntity().getUniqueId()).cancelAllRegen();
+        }
         kit.remove(event.getEntity());
     }
 
@@ -173,8 +208,10 @@ public class Players extends DefaultListener {
     public void onPlayerDamage(EntityDamageEvent event) {
         if (event.getEntity() instanceof Player) {
             Player player = (Player) event.getEntity();
-            if(event.getCause() == EntityDamageEvent.DamageCause.BLOCK_EXPLOSION || event.getCause() == EntityDamageEvent.DamageCause.ENTITY_EXPLOSION)
+            if(event.getCause() == EntityDamageEvent.DamageCause.BLOCK_EXPLOSION)
                 event.setDamage(0);
+            if(event.getCause() == EntityDamageEvent.DamageCause.LIGHTNING)
+                event.setDamage(3);
             // Check if the player is wearing any armor
             if (isWearingArmor(player)) {
                 // Calculate damage as if no armor is worn
