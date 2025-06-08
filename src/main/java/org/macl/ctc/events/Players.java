@@ -44,6 +44,7 @@ public class Players extends DefaultListener {
         main.broadcast("quit event " + game.resetPlayer(p, true));
     }
 
+
     @EventHandler
     public void launch(ProjectileLaunchEvent event) {
         Projectile proj = event.getEntity();

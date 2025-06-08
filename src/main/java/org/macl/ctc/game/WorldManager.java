@@ -120,6 +120,7 @@ public class WorldManager {
                     // Verify that the world was loaded
                     if (createdWorld != null) {
                         main.broadcast("World '" + worldName + "' has been successfully loaded.");
+                        isUnloading = false;
                         center = getCenter();
                     } else {
                         main.broadcast("Failed to load world '" + worldName + "'.");

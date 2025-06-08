@@ -103,6 +103,25 @@ public class KitManager implements Listener {
 
         menu.setItem(8, ChatColor.LIGHT_PURPLE + "Grandpa", Enchantment.DAMAGE_ALL, grandpaLore, Material.HONEY_BOTTLE);
 
+        List<String> archerLore = createLore(
+                ChatColor.RED       + "Flame Arrow: Unlimited fire arrows",
+                ChatColor.YELLOW    + "Lightning Arrow: Strike lightning on hit",
+                ChatColor.GREEN     + "Teleport Arrow: Swap positions with target",
+                ChatColor.DARK_AQUA + "Ice Arrow: Freeze area in a radius",
+                ChatColor.WHITE     + "Cyclone Arrow: Suck nearby players in",
+                ChatColor.GRAY      + "Gravity Arrow: Lift blocks & players"
+        );
+
+        menu.setItem(
+                9,
+                ChatColor.GOLD + "ARCHER",
+                Enchantment.ARROW_DAMAGE,
+                archerLore,
+                Material.BOW
+        );
+
+
+
         return menu;
     }
 
@@ -110,12 +129,8 @@ public class KitManager implements Listener {
         p.openInventory(getMenu().getKitMenu());
     }
 
-    public List<String> createLore(String s1, String s2, String s3) {
-        List<String> lore = new ArrayList<String>();
-        lore.add(s1);
-        lore.add(s2);
-        lore.add(s3);
-        return lore;
+    public static List<String> createLore(String... lines) {
+        return Arrays.asList(lines);
     }
 
     @EventHandler

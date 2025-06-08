@@ -7,14 +7,19 @@ import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Arrow;
+import org.bukkit.entity.FishHook;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Snowball;
+import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.player.PlayerFishEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitRunnable;
+import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.util.RayTraceResult;
+import org.bukkit.util.Vector;
 import org.macl.ctc.events.Blocks;
 import org.macl.ctc.events.Interact;
 import org.macl.ctc.events.Players;
@@ -29,7 +34,7 @@ import java.util.Map;
 import java.util.UUID;
 import net.md_5.bungee.api.chat.TextComponent;
 
-public final class Main extends JavaPlugin implements CommandExecutor {
+public final class Main extends JavaPlugin implements CommandExecutor, Listener {
 
 
     public String map = "sandstone";
@@ -79,21 +84,12 @@ public final class Main extends JavaPlugin implements CommandExecutor {
 
         for(Listener i : listens)
             getServer().getPluginManager().registerEvents(i, this);
-        new BukkitRunnable() {
-            @Override
-            public void run() {
-                TextComponent message = new TextComponent("discord click this");
-                TextComponent link = new TextComponent("https://discord.gg/Qeme8MUXBY");
-                link.setClickEvent(new ClickEvent(ClickEvent.Action.OPEN_URL, "https://discord.gg/Qeme8MUXBY"));
-                link.setColor(net.md_5.bungee.api.ChatColor.AQUA);
-                link.setUnderlined(true);
 
-                message.addExtra(link);
+        registerEvents();
+    }
 
-                Bukkit.spigot().broadcast(message);
-            }
-        }.runTaskTimer(this, 0L, 180*20);
-        // Setup map / game
+    private void registerEvents() {
+        getServer().getPluginManager().registerEvents(this, this);
     }
     /*private Map<Location, Location> teleporterPairs = new HashMap<>();
     public boolean isTeleporterLocation(Location loc) {
@@ -178,7 +174,6 @@ public final class Main extends JavaPlugin implements CommandExecutor {
         // If the player (or console) uses our command correct, we can return true
         return true;
     }
-
     public void fakeExplode(Player p, Location l, int maxDamage, int maxDistance, boolean damage1, boolean fire) {
         Location center = l.add(0, 1, 0); // Center of explosion
         World world = center.getWorld();
