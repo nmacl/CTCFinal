@@ -51,13 +51,10 @@ public class Interact extends DefaultListener {
 
 
     private void rightClick(PlayerInteractEvent event) {
-        if(event.getHand() == EquipmentSlot.OFF_HAND) return;
-        if(second == false && event.getAction() == Action.RIGHT_CLICK_BLOCK)
-            second = true;
-        else if(second && event.getAction() == Action.RIGHT_CLICK_BLOCK) {
-            second = false;
-            return;
-        }
+        if (event.getHand() != EquipmentSlot.HAND) return;
+        // 2) only care about right‐click
+        Action a = event.getAction();
+        if (a != Action.RIGHT_CLICK_AIR && a != Action.RIGHT_CLICK_BLOCK) return;
 
         Player p = event.getPlayer();
         Material m = event.getPlayer().getInventory().getItemInMainHand().getType();
@@ -110,6 +107,8 @@ public class Interact extends DefaultListener {
                     r.blockRun();
                 if(m == Material.CLOCK)
                     r.polarField();
+                if(m == Material.SLIME_BALL)
+                    r.platform();
             }
             if(k instanceof Tank) {
                 Tank t = (Tank) k;
@@ -134,6 +133,26 @@ public class Interact extends DefaultListener {
                 Engineer e = (Engineer) k;
                 if(m == Material.IRON_SHOVEL)
                     e.overload();
+            }
+
+            if(k instanceof Artificer) {
+                Artificer art = (Artificer) k;
+                if (m == Material.RIB_ARMOR_TRIM_SMITHING_TEMPLATE) {
+                    art.useFlamethrower();
+                    event.setCancelled(true);
+                }
+                else if (m == Material.TIPPED_ARROW) {
+                    art.useFrostDagger();
+                    event.setCancelled(true);
+                }
+                else if (m == Material.FLINT) {
+                    art.useVoidBomb();
+                    event.setCancelled(true);
+                }
+                else if (m == Material.FEATHER) {
+                    art.useUpdraft();
+                    event.setCancelled(true);
+                }
             }
         }
     }

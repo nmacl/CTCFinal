@@ -7,6 +7,7 @@ import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.entity.Arrow;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.Snowball;
 import org.bukkit.event.player.PlayerTeleportEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.Damageable;
@@ -67,7 +68,7 @@ public class Tank extends Kit {
 
 
 
-        new BukkitRunnable() {
+        BukkitTask t = new BukkitRunnable() {
             @Override
             public void run() {
                 main.broadcast(face.toString());
@@ -96,10 +97,11 @@ public class Tank extends Kit {
                 p.teleport(bLoc);
             }
         }.runTaskLater(main, 3L);
+        registerTask(t);
 
 
 
-        p.addPotionEffect(new PotionEffect(PotionEffectType.SLOW, 999999999, 9999));
+        p.addPotionEffect(new PotionEffect(PotionEffectType.SLOW, 999999999, 5));
         e.clear();
         e.setItem(0, gun);
         e.setItem(1, newItem(Material.FLINT, ChatColor.RED + "EXIT"));
@@ -170,13 +172,13 @@ public class Tank extends Kit {
                         item.setItemMeta(itemMeta);
 
 
-
-                        p.launchProjectile(Arrow.class);
+                        p.launchProjectile(Snowball.class);
                         // if over heat cancel
                         p.getWorld().playSound(p.getLocation(), Sound.ITEM_FLINTANDSTEEL_USE, 1f,0.1f);
                         timer++;
                     }
                 }.runTaskTimer(main, 0L, 1L);
+                registerTask(task);
             }
         }
 
@@ -221,7 +223,7 @@ public class Tank extends Kit {
 
         // kinda icky but it works. 10 second shield 20 second give back
 
-        new BukkitRunnable() {
+        BukkitTask t1 = new BukkitRunnable() {
             @Override
             public void run() {
                 for(Block b : blocks)
@@ -229,14 +231,16 @@ public class Tank extends Kit {
                 p.playSound(p.getLocation(), Sound.BLOCK_METAL_PLACE, 1f, 1f);
             }
         }.runTaskLater(main, 20*10);
+        registerTask(t1);
 
-        new BukkitRunnable() {
+        BukkitTask t2 = new BukkitRunnable() {
             @Override
             public void run() {
                 e.setItem(2, shield);
                 shieldOn = false;
             }
         }.runTaskLater(main, 20*20);
+        registerTask(t2);
 
     }
 
@@ -249,7 +253,7 @@ public class Tank extends Kit {
     public void hellfire() {
         if(inHellfire || isOnCooldown("hellfire"))
             return;
-        new BukkitRunnable() {
+        BukkitTask t = new BukkitRunnable() {
             @Override
             public void run() {
                 count++;
@@ -260,6 +264,7 @@ public class Tank extends Kit {
                 p.getWorld().spawnParticle(Particle.DRIP_LAVA, p.getLocation(), 20);
             }
         }.runTaskTimer(main, 0L, 1L);
+        registerTask(t);
 
         p.getWorld().playSound(p.getLocation(), Sound.BLOCK_NOTE_BLOCK_DIDGERIDOO, 5f, 1f);
         setCooldown("hellfire", 20, Sound.ENTITY_EXPERIENCE_ORB_PICKUP);
@@ -268,13 +273,13 @@ public class Tank extends Kit {
 
         Location ps = new Location(p.getWorld(), p.getLocation().getX(), p.getLocation().getY() + 150, p.getLocation().getZ());
 
-        new BukkitRunnable() {
+        BukkitTask t1 = new BukkitRunnable() {
             @Override
             public void run() {
                 p.teleport(ps, PlayerTeleportEvent.TeleportCause.PLUGIN);
                 p.setRotation(0, 90);
                 p.setInvulnerable(true);
-                new BukkitRunnable() {
+                BukkitTask t2 = new BukkitRunnable() {
                     @Override
                     public void run() {
                         //add checks
@@ -285,6 +290,7 @@ public class Tank extends Kit {
                         time++;
                         if(time > 20*25 || (p.getFallDistance() == 0 && time > 80) ) {
                             main.fakeExplode(p, p.getLocation(), 15, 10, false, false);
+                            p.getWorld().createExplosion(p.getLocation(), 2f, false, true);
                             p.setInvulnerable(false);
                             p.teleport(previousLoc);
                             previousLoc = null;
@@ -298,15 +304,17 @@ public class Tank extends Kit {
                         p.getWorld().playSound(p.getLocation(), Sound.ENTITY_FIREWORK_ROCKET_SHOOT, 5f, 0.5f);
                     }
                 }.runTaskTimer(main, 0L, 1L);
+                registerTask(t2);
             }
         }.runTaskLater(main, 8L);
+        registerTask(t1);
 
     }
 
     public void exit() {
         setCooldown("gatling", 20, Sound.ENTITY_EXPERIENCE_ORB_PICKUP);
 
-        new BukkitRunnable() {
+        BukkitTask t = new BukkitRunnable() {
             @Override
             public void run() {
                 p.removePotionEffect(PotionEffectType.SLOW);
@@ -329,5 +337,6 @@ public class Tank extends Kit {
                 usage = 0;
             }
         }.runTaskLater(main, 2L);
+        registerTask(t);
     }
 }

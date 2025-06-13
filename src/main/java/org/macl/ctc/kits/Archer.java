@@ -15,6 +15,7 @@ import org.bukkit.inventory.meta.LeatherArmorMeta;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitRunnable;
+import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.util.Vector;
 import org.macl.ctc.Main;
 import org.macl.ctc.kits.Kit;
@@ -50,7 +51,8 @@ public class Archer extends Kit {
         }
 
         if(inHand == ArrowType.CYCLONE) {
-            new cycloneTimer(event.getEntity()).runTaskTimer(main, 0L, 1L);
+            BukkitTask cyc = new cycloneTimer(event.getEntity()).runTaskTimer(main, 0L, 1L);
+            registerTask(cyc);
         }
         if(inHand != ArrowType.FLAME) {
             p.getInventory().setItemInMainHand(null);
@@ -294,7 +296,7 @@ public class Archer extends Kit {
         canShoot.put(arrowType, false);
         ItemStack arrow = p.getInventory().getItem(arrowTypeToSlot(arrowType));
 
-        new BukkitRunnable() {
+        BukkitTask cool = new BukkitRunnable() {
             @Override
             public void run() {
                 canShoot.put(arrowType, true);
@@ -309,6 +311,7 @@ public class Archer extends Kit {
                 }
             }
         }.runTaskLater(main, seconds * 20);  // Convert seconds to game ticks
+        registerTask(cool);
     }
 
     private int arrowTypeToSlot(ArrowType arrowType) {
@@ -416,7 +419,8 @@ public class Archer extends Kit {
                     break;
                 }
                 case ICE -> {
-                    new iceTimer(event.getHitEntity().getLocation()).runTaskTimer(main, 0L, 1L);
+                    BukkitTask t = new iceTimer(event.getHitEntity().getLocation()).runTaskTimer(main, 0L, 1L);
+                    registerTask(t);
                     break;
                 }
                 case GRAVITY -> {

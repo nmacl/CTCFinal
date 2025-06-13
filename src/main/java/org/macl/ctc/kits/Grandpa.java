@@ -8,14 +8,17 @@ import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitRunnable;
+import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.util.Vector;
 import org.macl.ctc.Main;
 
 public class Grandpa extends Kit {
 
     private int maxAmmo = 2;
-    private int reloadTime = 3;
+    private int reloadTime = 5;
     private int ammo = maxAmmo;
+
+    public boolean fallImmune = false;
 
     public Grandpa(Main main, Player p, KitType type) {
         super(main, p, type);
@@ -29,27 +32,34 @@ public class Grandpa extends Kit {
         e.setItem(2, newItem(Material.LADDER, "Old Ladder", 24));
         giveWool();
         giveWool();
+        setHearts(20); // Set health since you didn't specify
     }
 
     public void shootGun() {
         if (ammo > 0) {
             ammo--;
-            p.getWorld().playSound(p.getLocation(), Sound.ENTITY_FIREWORK_ROCKET_BLAST, 1f, 0.1f);
+            p.getWorld().playSound(p.getLocation(),
+                    Sound.ENTITY_FIREWORK_ROCKET_BLAST,
+                    1f, 0.1f);
 
-            // Apply negative velocity for knockback effect
-            Vector direction = p.getLocation().getDirection().clone();
-
-            // Spawn bullet (SmallFireball)
-            Location bulletLocation = p.getLocation().add(0, p.getEyeHeight() - 0.5, 0);
-            SmallFireball bullet = p.getWorld().spawn(bulletLocation, SmallFireball.class);
+            Vector dir = p.getLocation().getDirection();
+            SmallFireball bullet = p.getWorld()
+                    .spawn(p.getEyeLocation().subtract(0, 0.5, 0),
+                            SmallFireball.class);
             bullet.setShooter(p);
-            bullet.setVelocity(direction.multiply(1.5)); // Adjust speed as needed
+            bullet.setVelocity(dir.multiply(1.5));
 
-            Vector knockback = direction.multiply(-1).setY(1.7); // Adjust Y for upward momentum
-            p.setVelocity(knockback);
+            // knockback
+            Vector r = dir.multiply((-1));
+            r.setY(r.getY() * 1.7);
+            p.setVelocity(r);
+
+            fallImmune = true;
+
 
             if (ammo == 0) {
-                e.setItem(0, newItem(Material.LIGHT_GRAY_DYE, ChatColor.RED + "Reload"));
+                e.setItem(0, newItem(Material.LIGHT_GRAY_DYE,
+                        ChatColor.RED + "Reload"));
                 reloadGun();
             }
         } else if (!isOnCooldown("Reload")) {
@@ -57,71 +67,71 @@ public class Grandpa extends Kit {
         }
     }
 
-    public void reloadGun() {
-        if (isOnCooldown("Reload")) {
-            return;
-        }
+    private void reloadGun() {
+        // just fire off one Kit cooldown
+        e.setItem(0, newItem(Material.GRAY_DYE,
+                ChatColor.GREEN + "Reloading..."));
+        p.playSound(p.getLocation(),
+                Sound.ITEM_ARMOR_EQUIP_LEATHER,
+                1f, 1f);
 
-        e.setItem(0, newItem(Material.GRAY_DYE, ChatColor.GREEN + "Reloading..."));
-        p.playSound(p.getLocation(), Sound.ITEM_ARMOR_EQUIP_LEATHER, 1f, 1);
-
-        // Use the cooldown system from the Kit class
-        setCooldown("Reload", reloadTime, Sound.ITEM_ARMOR_EQUIP_IRON);
-
-        new BukkitRunnable() {
-            @Override
-            public void run() {
-                p.playSound(p.getLocation(), Sound.ITEM_ARMOR_EQUIP_IRON, 1f, 0.5f);
-                e.setItem(0, newItem(Material.PRISMARINE_SHARD, ChatColor.GRAY + "Slugged Shotgun"));
-                ammo = maxAmmo;
-            }
-        }.runTaskLater(main, 20 * reloadTime);
+        setCooldown("Reload", reloadTime, Sound.ITEM_ARMOR_EQUIP_IRON, () -> {
+            // onComplete!
+            ammo = maxAmmo;
+            e.setItem(0, newItem(Material.PRISMARINE_SHARD,
+                    ChatColor.GRAY + "Slugged Shotgun"));
+            p.playSound(p.getLocation(),
+                    Sound.ITEM_ARMOR_EQUIP_IRON,
+                    1f, 0.5f);
+        });
     }
 
     public void drinkBooze() {
-        if (e.contains(Material.HONEY_BOTTLE)) {
-            e.setItem(1, newItemEnchanted(Material.GLASS_BOTTLE, ChatColor.DARK_RED + "Empty Flask", Enchantment.DAMAGE_ALL, 3));
+        // Don't start if no booze or already in booze cooldown
+        if (!e.contains(Material.HONEY_BOTTLE) || isOnCooldown("Booze")) return;
 
-            // Apply potion effects
-            p.addPotionEffect(new PotionEffect(PotionEffectType.DARKNESS, 20 * 12, 0));
-            p.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, 20 * 18, 2));
-            p.addPotionEffect(new PotionEffect(PotionEffectType.GLOWING, 20 * 1, 0));
+        // 1) Consume & show empty flask
+        e.setItem(1, newItemEnchanted(
+                Material.GLASS_BOTTLE,
+                ChatColor.DARK_RED + "Empty Flask",
+                Enchantment.DAMAGE_ALL, 3
+        ));
 
-            // Adjust weapon stats
-            reloadTime = 1;
-            maxAmmo = 3;
-            ammo = maxAmmo;
+        // 2) Apply effects
+        p.addPotionEffect(new PotionEffect(PotionEffectType.DARKNESS, 20 * 12, 0));
+        p.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, 20 * 18, 2));
+        p.addPotionEffect(new PotionEffect(PotionEffectType.GLOWING, 20 * 1, 0));
 
-            p.playSound(p.getLocation(), Sound.ENTITY_GENERIC_DRINK, 1f, 0.2f);
-            if (p.getHealth() < 8) {
-                p.setHealth(0.5);
-            } else {
-                p.damage(8);
-            }
+        // 3) Cancel any reload in progress & give one extra shell
+        cancelCooldown("Reload");
+        ammo = maxAmmo + 1;  // three shells total (maxAmmo stays at 2)
+        e.setItem(0, newItem(
+                Material.PRISMARINE_SHARD,
+                ChatColor.GRAY + "Slugged Shotgun"
+        ));
 
-            // Set cooldown for the booze effect
-            setCooldown("Booze", 12, Sound.ENTITY_PLAYER_BURP);
+        // 4) Play the drink sound & self-damage
+        p.playSound(p.getLocation(),
+                Sound.ENTITY_GENERIC_DRINK,
+                1f, 0.2f);
 
-            new BukkitRunnable() {
-                @Override
-                public void run() {
-                    reloadTime = 3;
-                    maxAmmo = 2;
-                    e.setItem(1, newItemEnchanted(Material.GLASS_BOTTLE, ChatColor.RED + "Empty Flask", Enchantment.DAMAGE_ALL, 1));
-                    p.playSound(p.getLocation(), Sound.ENTITY_PLAYER_BURP, 2f, 1f);
-
-                    // Start cooldown before booze can be used again
-                    setCooldown("Booze Recharge", 18, Sound.BLOCK_BREWING_STAND_BREW);
-
-                    new BukkitRunnable() {
-                        @Override
-                        public void run() {
-                            e.setItem(1, newItem(Material.HONEY_BOTTLE, ChatColor.GOLD + "Booze"));
-                            p.playSound(p.getLocation(), Sound.BLOCK_BREWING_STAND_BREW, 1f, 1f);
-                        }
-                    }.runTaskLater(main, 20 * 18); // Booze returns after 18 seconds
-                }
-            }.runTaskLater(main, 20 * 12); // Booze effect lasts 12 seconds
+        // Fixed damage logic - prevent killing player with 0.5 health
+        if (p.getHealth() <= 8) {
+            p.setHealth(Math.max(0.5, p.getHealth() - 4)); // Reduce damage if low health
+        } else {
+            p.damage(8);
         }
+
+        // 5) Start single "Booze" timer
+        setCooldown("Booze", 12, Sound.ENTITY_PLAYER_BURP, () -> {
+            // effect ends → restore the booze bottle
+            e.setItem(1, newItem(
+                    Material.HONEY_BOTTLE,
+                    ChatColor.GOLD + "Booze"
+            ));
+            p.playSound(p.getLocation(),
+                    Sound.ENTITY_PLAYER_BURP,
+                    2f, 1f);
+        });
     }
 }

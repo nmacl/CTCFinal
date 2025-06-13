@@ -32,30 +32,6 @@ public class Grandma extends Kit {
         giveWool();
         giveWool();
         regenItem("heal", healCookies, 8, 3, 1);
-        /*new BukkitRunnable() {
-            @Override
-            public void run() {
-                // Check if the player is dead or has the Grandma kit
-                if(main.getKits().get(p.getUniqueId()) == null || !(main.getKits().get(p.getUniqueId()) instanceof Grandma)) {
-                    this.cancel();
-                    return;
-                }
-
-                // Attempt to find the first slot with a cookie
-                int first = e.first(Material.COOKIE);
-                if (first == -1) { // If no cookies are found in the inventory
-                    e.addItem(healCookies); // Directly add healing cookies
-                    return;
-                }
-
-                // If there are cookies in the inventory
-                ItemStack m = e.getItem(first);
-                if (m.getAmount() < 3) { // Check if there are less than 4 cookies
-                    e.addItem(healCookies); // Add healing cookies
-                }
-            }
-        }.runTaskTimer(main, 0L, 20*8L); // Schedule to run this task every 8 seconds*/
-
     }
 
     public void heart() {

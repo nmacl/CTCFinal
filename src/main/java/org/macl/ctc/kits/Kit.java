@@ -22,6 +22,7 @@ import org.macl.ctc.Main;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 
 public class Kit implements Listener {
     public Main main;
@@ -33,10 +34,34 @@ public class Kit implements Listener {
     private HashMap<String, Cooldown> cooldowns = new HashMap<>();
     private HashMap<String, RegenItem> regenItems = new HashMap<>();
 
+    private final List<BukkitTask> activeTasks = new ArrayList<>();
+
     public void regenItem(String name, ItemStack item, int seconds, int maxAmt, int slot) {
         RegenItem regen = new RegenItem(this, p, name, item, seconds, maxAmt, slot);
         regenItems.put(name, regen);
     }
+
+    /** Register a BukkitTask so we can cancel it later. */
+    protected void registerTask(BukkitTask task) {
+        activeTasks.add(task);
+    }
+
+    /** Cancel every task this Kit has ever scheduled. */
+    public void cancelAllTasks() {
+        for (BukkitTask task : activeTasks) {
+            task.cancel();
+        }
+        activeTasks.clear();
+    }
+
+    /** Schedule and auto‐register a repeating runnable. */
+    protected BukkitTask runTaskTimer(BukkitRunnable r, long delay, long period) {
+        BukkitTask t = r.runTaskTimer(main, delay, period);
+        registerTask(t);
+        return t;
+    }
+
+
 
 
     public void cancelAllCooldowns() {
@@ -83,27 +108,6 @@ public class Kit implements Listener {
         playerAttribute.setBaseValue(20);
     }
 
-
-    private void showCooldownProgress(int seconds, String abilityName) {
-        new BukkitRunnable() {
-            int timeLeft = seconds;
-
-            @Override
-            public void run() {
-                if (timeLeft <= 0) {
-                    this.cancel();
-                    return;
-                }
-
-                double progress = (double) (seconds - timeLeft) / seconds;
-                String progressIndicator = getProgressIndicator(progress);
-
-                p.spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacyText(ChatColor.WHITE + abilityName + " " + progressIndicator));
-                timeLeft--;
-            }
-        }.runTaskTimer(main, 0L, 20L);
-    }
-
     private String getProgressIndicator(double progress) {
         StringBuilder sb = new StringBuilder();
         int stages = 10;
@@ -123,17 +127,33 @@ public class Kit implements Listener {
      * Sets a cooldown for a specific ability.
      * @param ability The name of the ability.
      * @param seconds The duration of the cooldown in seconds.
-     * @param startSound The sound to play when the cooldown starts.
      */
-    public void setCooldown(String ability, int seconds, Sound startSound) {
+// in Kit.java, *below* your existing setCooldown(...)
+    public void setCooldown(String ability, int seconds, Sound endSound, Runnable onComplete) {
+        // cancel any existing
         if (cooldowns.containsKey(ability)) {
-            cooldowns.get(ability).cancel();  // Cancel any existing cooldown
+            cooldowns.get(ability).cancel();
         }
-        Cooldown cooldown = new Cooldown(this, p, ability, seconds, startSound, () -> {
-            p.sendMessage(ChatColor.GREEN + "Cooldown for " + ability + " is over!");
-            cooldowns.remove(ability);  // Remove the cooldown when it's finished
+        // wrap their onComplete to also remove it from the map
+        Cooldown cd = new Cooldown(this, p, ability, seconds, endSound, () -> {
+            onComplete.run();
+            cooldowns.remove(ability);
         });
-        cooldowns.put(ability, cooldown);
+        cooldowns.put(ability, cd);
+    }
+
+    // now tweak the old setCooldown to delegate:
+    public void setCooldown(String ability, int seconds, Sound endSound) {
+        setCooldown(ability, seconds, endSound, () -> {
+            //p.sendMessage(ChatColor.GREEN + ability + " is ready!");
+        });
+    }
+
+    public void cancelCooldown(String ability) {
+        Cooldown cd = cooldowns.remove(ability);
+        if (cd != null) {
+            cd.cancel();
+        }
     }
 
     /**
@@ -177,6 +197,7 @@ public class Kit implements Listener {
                     kit.updateCooldowns();  // Notify the Kit to update the action bar
                 }
             }.runTaskTimer(main, 0L, 20L);  // Make sure kit can provide access to main
+            registerTask(task);
         }
 
         public String getProgressIndicator() {
@@ -279,6 +300,7 @@ public class Kit implements Listener {
                     }
                 }
             }.runTaskTimer(kit.main, 0L, 20L);
+            registerTask(task);
         }
 
         private int getCurrentItemCount() {
@@ -380,5 +402,4 @@ public class Kit implements Listener {
     public Player getPlayer() {
         return p;
     }
-
 }

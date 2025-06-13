@@ -7,6 +7,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitRunnable;
+import org.bukkit.scheduler.BukkitTask;
 import org.macl.ctc.Main;
 
 public class Spy extends Kit {
@@ -42,7 +43,8 @@ public class Spy extends Kit {
         giveWool();
         giveWool();
         regenItem("cloak", newItem(Material.ENDER_PEARL, ChatColor.DARK_PURPLE + "Cloak (Teleport)"), 40, 2, 1);
-        new spyInvis().runTaskTimer(main, 0L, 1L);
+        BukkitTask inv = new spyInvis().runTaskTimer(main, 0L, 1L);
+        this.registerTask(inv);
         p.getInventory().remove(Material.DIAMOND_PICKAXE);
         setHearts(14);
     }
@@ -50,7 +52,8 @@ public class Spy extends Kit {
     public void detonate() {
         if(detonate != null) {
             p.getInventory().remove(Material.BLAZE_ROD);
-            new detonateTimer().runTaskTimer(main, 0, 1L);
+            BukkitTask detonateTimer = new detonateTimer().runTaskTimer(main, 0, 1L);
+            registerTask(detonateTimer);
         }
     }
 
@@ -89,9 +92,11 @@ public class Spy extends Kit {
             }
             if(timer == 35) {
                 main.fakeExplode(p, getDetonate(), 18, 6, true, false);
+                p.getWorld().createExplosion(p.getLocation(), 2f, false, true);
                 this.cancel();
                 detonate = null;
-                new BukkitRunnable() {
+
+                BukkitTask add = new BukkitRunnable() {
 
                     int count = 15;
                     public void run() {
@@ -103,13 +108,11 @@ public class Spy extends Kit {
                         }
                     }
                 }.runTaskTimer(main, 0L, 20L);
+                registerTask(add);
                 return;
             }
             detonate.getWorld().playSound(detonate, Sound.BLOCK_NOTE_BLOCK_HAT, 1f, (float) (0.1*timer));
             timer++;
         }
-
     }
-
-
 }

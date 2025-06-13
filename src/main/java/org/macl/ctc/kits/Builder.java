@@ -8,6 +8,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.scheduler.BukkitRunnable;
+import org.bukkit.scheduler.BukkitTask;
 import org.macl.ctc.Main;
 
 import java.util.ArrayList;
@@ -49,19 +50,22 @@ public class Builder extends Kit {
     public void stairs() {
         if (stairs)
             return;
-        new BuildStair(main, p.getLocation(), p.getFacing(), p).runTaskTimer(main, 0, 4L);
+        BukkitTask t = new BuildStair(main, p.getLocation(), p.getFacing(), p).runTaskTimer(main, 0, 4L);
+        registerTask(t);
     }
 
     public void tower() {
         if (tower)
             return;
-        new BuildTower(main, p.getLocation(), p).runTaskTimer(main, 0L, 4L);
+        BukkitTask t = new BuildTower(main, p.getLocation(), p).runTaskTimer(main, 0L, 4L);
+        registerTask(t);
     }
 
     public void bridge() {
         if (bridge)
             return;
-        new BuildBridge(main, p.getLocation(), p.getFacing(), p).runTaskTimer(main, 0L, 4L);
+        BukkitTask t = new BuildBridge(main, p.getLocation(), p.getFacing(), p).runTaskTimer(main, 0L, 4L);
+        registerTask(t);
     }
 
     public class BuildStair extends BukkitRunnable {

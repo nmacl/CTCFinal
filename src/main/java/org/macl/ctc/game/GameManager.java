@@ -18,10 +18,7 @@ import org.macl.ctc.Main;
 import org.macl.ctc.kits.Kit;
 import org.macl.ctc.kits.Spy;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.UUID;
+import java.util.*;
 
 public class GameManager {
 
@@ -83,6 +80,7 @@ public class GameManager {
             p.setScoreboard(gameScoreboard);
         }
 
+        // Add each shuffled player to a team
         for (Iterator<UUID> iterator = stack.iterator(); iterator.hasNext();) {
             UUID uuid = iterator.next();
             Player p = Bukkit.getPlayer(uuid);
@@ -99,6 +97,47 @@ public class GameManager {
         // Initialize the scoreboard
         updateScoreboard(0, 0);
         center = 0;
+
+        // --- TIP SCHEDULING ---
+
+        // 1) Define your tips as (title, subtitle) pairs
+        List<String[]> tips = Arrays.asList(
+                new String[]{ "",                              ChatColor.AQUA   + "Press right-click to use an ability" },
+                new String[]{ "",                              ChatColor.GREEN  + "Place your colored wool in the netherite center" },
+                new String[]{ "",                              ChatColor.RED  +   "Capturing the center gives you the diamond pickaxe" },
+                new String[]{ ChatColor.BOLD + "Have fun!",    ChatColor.GOLD   + "Use the diamond pickaxe to destroy the enemy team's obsidian" }
+        );
+
+        // 2) Timing constants (in ticks)
+        final int FADE_IN  = 20;
+        final int STAY     = 60;
+        final int FADE_OUT = 30;
+        final long INTERVAL = FADE_IN + STAY + FADE_OUT;  // ensures no overlap
+
+        // 3) Schedule a repeating task
+        new BukkitRunnable() {
+            int index = 0;
+            @Override
+            public void run() {
+                if (index >= tips.size()) {
+                    // All tips shown ⇒ stop repeating
+                    cancel();
+                    return;
+                }
+
+                // Broadcast the current tip to everyone on the "map" world
+                for (Player p : Bukkit.getOnlinePlayers()) {
+                    if (!p.getWorld().getName().equals("map")) continue;
+                    String title    = tips.get(index)[0];
+                    String subtitle = tips.get(index)[1];
+                    p.sendTitle(title, subtitle, FADE_IN, STAY, FADE_OUT);
+                }
+
+                index++;
+            }
+        }
+                // first run 80 ticks (4s) after start(), then every INTERVAL ticks
+                .runTaskTimer(main, /* initialDelay= */120L, /* period= */INTERVAL);
     }
 
     private void setup(Player p) {
@@ -142,33 +181,43 @@ public class GameManager {
         }
     }
 
-    public void stop(Player p) {
-        started = false;
+    public void stop(Player stopper) {
+        started  = false;
         starting = false;
+
         new BukkitRunnable() {
-            @Override
-            public void run() {
-                for (Player p1 : Bukkit.getOnlinePlayers()) {
-                    if (kit.kits.get(p1.getUniqueId()) != null) {
-                        kit.kits.get(p1.getUniqueId()).cancelAllCooldowns();
-                        kit.kits.get(p1.getUniqueId()).cancelAllRegen();
+            @Override public void run() {
+
+                // 1) wipe the map FIRST
+                world.clean(stopper);      // or world.cleanAll() if it affects blocks only
+
+                // 2) now reset all players once
+                for (Player pl : Bukkit.getOnlinePlayers()) {
+                    if (kit.kits.containsKey(pl.getUniqueId())) {
+                        kit.kits.get(pl.getUniqueId()).cancelAllCooldowns();
+                        kit.kits.get(pl.getUniqueId()).cancelAllRegen();
+                        kit.kits.get(pl.getUniqueId()).cancelAllTasks();
                     }
                 }
-                clean();
-                world.clean(p);
-                redCoreHealth = 3;
+                clean();                   // <- teleports everyone to “world” exactly once
+
+                redCoreHealth  = 3;
                 blueCoreHealth = 3;
                 kit.kits.clear();
                 center = 0;
-                // Clear the game scoreboard
                 gameScoreboard = null;
             }
         }.runTaskLater(main, 60L);
     }
 
+
     public void stack(Player p) {
         p.teleport(p.getWorld().getSpawnLocation());
         if (started) {
+            // IMPORTANT: Set the player's scoreboard to the game scoreboard BEFORE adding to team
+            if (gameScoreboard != null) {
+                p.setScoreboard(gameScoreboard);
+            }
             addTeam(p);
             return;
         }
@@ -191,26 +240,85 @@ public class GameManager {
     }
 
     public void respawn(final Player p) {
-        if (!started || p.getWorld().getName().equalsIgnoreCase("world"))
+        if (!started || p.getWorld().getName().equalsIgnoreCase("world")) {
+            resetPlayer(p, true);
             return;
-        new BukkitRunnable() {
-            int count = 8;
+        }
 
-            public void run() {
-                if (p == null || !p.isOnline()) {
-                    resetPlayer(p, true);
-                    this.cancel();
-                    return;
+        // one-tick delay so vanilla logic is finished
+        Bukkit.getScheduler().runTaskLater(main, () -> {
+
+            p.setGameMode(GameMode.SPECTATOR);
+
+            Player mate = getRandomTeammate(p);
+            if (mate != null) p.setSpectatorTarget(mate);
+
+            // single 8-second countdown
+            new BukkitRunnable() {
+                int count = 8;
+                @Override public void run() {
+                    if (!p.isOnline()) { cancel(); return; }
+                    p.setLevel(--count);          // 8 ➜ 0
+                    if (count == 0) {
+                        p.setGameMode(GameMode.SURVIVAL);
+                        AttributeInstance maxHealth = p.getAttribute(Attribute.GENERIC_MAX_HEALTH);
+                        if (maxHealth != null) maxHealth.setBaseValue(20);   // <-- here
+                        p.setHealth(maxHealth.getBaseValue());               // heal them fully
+                        teleportSpawn(p);
+                        kit.openMenu(p);
+                        cancel();
+                    }
                 }
-                count--;
-                p.setLevel(count);
-                if (count == 0) {
-                    teleportSpawn(p);
-                    kit.openMenu(p);
-                    this.cancel();
+            }.runTaskTimer(main, 20L, 20L);       // start 1 s later so level shows “8”
+
+        }, 1L);
+    }
+
+    private Player getRandomTeammate(Player p) {
+        List<Player> teammates = new ArrayList<>();
+
+        // Check if player is on red or blue team
+        boolean isPlayerRed = main.game.redHas(p);
+        boolean isPlayerBlue = main.game.blueHas(p);
+
+        for (Player online : Bukkit.getOnlinePlayers()) {
+            if (online != p && online.isOnline() &&
+                    !online.getGameMode().equals(GameMode.SPECTATOR)) {
+
+                // Add teammate if they're on the same team
+                if ((isPlayerRed && main.game.redHas(online)) ||
+                        (isPlayerBlue && main.game.blueHas(online))) {
+                    teammates.add(online);
                 }
             }
-        }.runTaskTimer(main, 0L, 20L);
+        }
+
+        if (!teammates.isEmpty()) {
+            return teammates.get(new Random().nextInt(teammates.size()));
+        }
+
+        return null;
+    }
+    public boolean sameTeam(UUID uuid1, UUID uuid2) {
+        Player p1 = Bukkit.getPlayer(uuid1);
+        Player p2 = Bukkit.getPlayer(uuid2);
+
+        // if either player isn’t online or doesn’t exist, they can’t be on the same team
+        if (p1 == null || p2 == null) {
+            return false;
+        }
+
+        // both on red?
+        boolean bothRed = getRed() != null
+                && getRed().hasEntry(p1.getName())
+                && getRed().hasEntry(p2.getName());
+
+        // both on blue?
+        boolean bothBlue = getBlue() != null
+                && getBlue().hasEntry(p1.getName())
+                && getBlue().hasEntry(p2.getName());
+
+        return bothRed || bothBlue;
     }
 
 
@@ -362,6 +470,7 @@ public class GameManager {
         if (playerKit != null) {
             playerKit.cancelAllCooldowns();
             playerKit.cancelAllRegen();
+            playerKit.cancelAllTasks();
         }
 
         // 10. Clear Player Display (Action Bar, Boss Bars, etc.)

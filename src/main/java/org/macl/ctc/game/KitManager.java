@@ -120,6 +120,20 @@ public class KitManager implements Listener {
                 Material.BOW
         );
 
+        List<String> artificerLore = createLore(
+                ChatColor.RED      + "Flamethrower: Burst of flame (9s cooldown)",
+                ChatColor.BLUE     + "Frost Dagger: Slowing spectral arrow (5s cd)",
+                ChatColor.DARK_GRAY+ "Void Bomb: Black‐concrete burst (8s cd)",
+                ChatColor.AQUA     + "Updraft: Propel yourself skyward (12s cd)"
+        );
+        menu.setItem(
+                10,
+                ChatColor.GREEN + "ARTIFICER",
+                Enchantment.MENDING,
+                artificerLore,
+                Material.RIB_ARMOR_TRIM_SMITHING_TEMPLATE
+        );
+
 
 
         return menu;
@@ -136,7 +150,6 @@ public class KitManager implements Listener {
     @EventHandler
     public void close(InventoryCloseEvent event) {
         Player p = (Player) event.getPlayer();
-        Bukkit.broadcastMessage("debug close");
         if(kits.get(p.getUniqueId()) == null && main.game.started && (main.game.redHas(p) || main.game.blueHas(p)) && event.getView().getTitle().equalsIgnoreCase(main.prefix + "Kit Menu"))
             kits.put(p.getUniqueId(), new Snowballer(main, p, KitType.SNOWBALLER));
     }
@@ -206,6 +219,9 @@ public class KitManager implements Listener {
                     //break;
                 case BOW:
                     kits.put(p.getUniqueId(), new Archer(main, p, KitType.ARCHER));
+                    break;
+                case RIB_ARMOR_TRIM_SMITHING_TEMPLATE:
+                    kits.put(p.getUniqueId(), new Artificer(main, p, KitType.ARTIFICER));
                     break;
                 default:
                     break;

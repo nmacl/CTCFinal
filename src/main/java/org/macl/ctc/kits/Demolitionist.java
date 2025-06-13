@@ -11,6 +11,7 @@ import org.bukkit.entity.Sheep;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.scheduler.BukkitRunnable;
+import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.util.RayTraceResult;
 import org.bukkit.util.Vector;
 import org.macl.ctc.Main;
@@ -50,7 +51,8 @@ public class Demolitionist extends Kit {
         g.setVelocity(p.getLocation().getDirection().multiply(1.35f));
         g.setBaby();
         g.setInvulnerable(true);
-        new sheepLaunch(g).runTaskTimer(main, 0L, 1L);
+        BukkitTask shep = new sheepLaunch(g).runTaskTimer(main, 0L, 1L);
+        registerTask(shep);
         setCooldown("sheep", 25, Sound.ENTITY_TNT_PRIMED);
     }
 

@@ -14,6 +14,7 @@ import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.inventory.meta.Damageable;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.scheduler.BukkitRunnable;
+import org.bukkit.scheduler.BukkitTask;
 import org.macl.ctc.Main;
 
 public class Snowballer extends Kit {
@@ -68,7 +69,8 @@ public class Snowballer extends Kit {
     public void launch() {
         if(!isOnCooldown("Rocket Jump")) {
             p.setVelocity(p.getLocation().getDirection().multiply(2.3f));
-            new rocketTrail().runTaskTimer(main, 0L, 1L);
+            BukkitTask t = new rocketTrail().runTaskTimer(main, 0L, 1L);
+            this.registerTask(t);
             setCooldown("Rocket Jump", 10, Sound.ENTITY_EXPERIENCE_ORB_PICKUP);
         }
     }
