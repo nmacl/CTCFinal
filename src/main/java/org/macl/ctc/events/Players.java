@@ -137,6 +137,8 @@ public class Players extends DefaultListener {
                 main.broadcast(shooter.getName());
                 if(kit.kits.get(shooter.getUniqueId()) instanceof Artificer && event.getEntity() instanceof Player) {
                     Player shot = (Player) event.getEntity();
+                    Kit shooterkit = kit.kits.get(shooter.getUniqueId());
+                    if (shooterkit instanceof Artificer) ((Artificer) shooterkit).addVoidFragments(4);
                     main.broadcast(shot.getName());
                     shot.addPotionEffect(new PotionEffect(PotionEffectType.SLOW, 40, 12));
                     shot.sendTitle(
@@ -145,6 +147,15 @@ public class Players extends DefaultListener {
                             5, 25, 5
                     );
                 }
+            }
+        }
+        if (event.getDamager() instanceof ShulkerBullet) {
+            event.setCancelled(true);
+            Entity e = event.getEntity();
+            if (e instanceof Player) {
+                ((Player) e).damage(0.4);
+                ((Player) e).setNoDamageTicks(0);
+                ((Player) e).addPotionEffect(new PotionEffect(PotionEffectType.GLOWING, 20 * 6, 1));
             }
         }
         if (event.getDamager() instanceof Snowball)

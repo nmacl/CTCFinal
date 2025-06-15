@@ -87,21 +87,22 @@ public class KitManager implements Listener {
 
         menu.setItem(7, ChatColor.DARK_AQUA + "Fisherman", Enchantment.LUCK, fishLore, Material.FISHING_ROD);
 
-        /*List<String> engineerLore = Arrays.asList(
+        List<String> engineerLore = Arrays.asList(
                 ChatColor.GRAY + "Engineer's Wrench",
                 ChatColor.WHITE + "Sentry Gun",
                 ChatColor.BLUE + "Teleporters"
         );
 
-        menu.setItem(8, ChatColor.DARK_GRAY + "Engineer", Enchantment.DIG_SPEED, engineerLore, Material.DISPENSER);*/
+        menu.setItem(8, ChatColor.DARK_GRAY + "Engineer", Enchantment.DIG_SPEED, engineerLore, Material.DISPENSER);
 
         List<String> grandpaLore = Arrays.asList(
                 ChatColor.GOLD + "Booze",
                 ChatColor.GRAY + "Slugged Shotgun",
+                ChatColor.YELLOW + "Peppergun",
                 ChatColor.DARK_GREEN + "Veteran of many battles"
         );
 
-        menu.setItem(8, ChatColor.LIGHT_PURPLE + "Grandpa", Enchantment.DAMAGE_ALL, grandpaLore, Material.HONEY_BOTTLE);
+        menu.setItem(9, ChatColor.LIGHT_PURPLE + "Grandpa", Enchantment.DAMAGE_ALL, grandpaLore, Material.HONEY_BOTTLE);
 
         List<String> archerLore = createLore(
                 ChatColor.RED       + "Flame Arrow: Unlimited fire arrows",
@@ -113,7 +114,7 @@ public class KitManager implements Listener {
         );
 
         menu.setItem(
-                9,
+                10,
                 ChatColor.GOLD + "ARCHER",
                 Enchantment.ARROW_DAMAGE,
                 archerLore,
@@ -121,19 +122,31 @@ public class KitManager implements Listener {
         );
 
         List<String> artificerLore = createLore(
-                ChatColor.RED      + "Flamethrower: Burst of flame (9s cooldown)",
-                ChatColor.BLUE     + "Frost Dagger: Slowing spectral arrow (5s cd)",
-                ChatColor.DARK_GRAY+ "Void Bomb: Black‐concrete burst (8s cd)",
-                ChatColor.AQUA     + "Updraft: Propel yourself skyward (12s cd)"
+                ChatColor.RED      + "Light enemies ablaze with the Flamethrower",
+                ChatColor.BLUE     + "Frost Dagger, freezes foes in place.",
+                ChatColor.AQUA     + "Launch yourself skyward with Updraft",
+                ChatColor.DARK_GRAY+ "Gather enough Void Fragments to form the Void Bomb"
         );
         menu.setItem(
-                10,
+                11,
                 ChatColor.GREEN + "ARTIFICER",
                 Enchantment.MENDING,
                 artificerLore,
                 Material.RIB_ARMOR_TRIM_SMITHING_TEMPLATE
         );
-
+        List<String> lumberjackLore = createLore(
+                ChatColor.YELLOW  + "Destroy all with the Chain Axe",
+                ChatColor.GOLD     + "Chuck your allies with Log Chuck",
+                ChatColor.GREEN     + "Use the power of Sap to rejuvenate allies and debuff enemies",
+                ChatColor.DARK_PURPLE + "Have allies Right-Click you to be ridden!"
+        );
+        menu.setItem(
+                12,
+                ChatColor.GOLD + "LUMBERJACK",
+                Enchantment.DIG_SPEED,
+                lumberjackLore,
+                Material.GOLDEN_AXE
+        );
 
 
         return menu;
@@ -214,14 +227,17 @@ public class KitManager implements Listener {
                 case HONEY_BOTTLE:
                     kits.put(p.getUniqueId(), new Grandpa(main, p, KitType.GRANDPA));
                     break;
-               // case DISPENSER:
-                    //kits.put(p.getUniqueId(), new Engineer(main, p, KitType.ENGINEER));
-                    //break;
+                case DISPENSER:
+                    kits.put(p.getUniqueId(), new Engineer(main, p, KitType.ENGINEER));
+                    break;
                 case BOW:
                     kits.put(p.getUniqueId(), new Archer(main, p, KitType.ARCHER));
                     break;
                 case RIB_ARMOR_TRIM_SMITHING_TEMPLATE:
                     kits.put(p.getUniqueId(), new Artificer(main, p, KitType.ARTIFICER));
+                    break;
+                case GOLDEN_AXE:
+                    kits.put(p.getUniqueId(), new Lumberjack(main,p,KitType.LUMBERJACK));
                     break;
                 default:
                     break;

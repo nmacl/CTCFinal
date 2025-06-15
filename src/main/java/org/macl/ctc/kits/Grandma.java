@@ -27,11 +27,12 @@ public class Grandma extends Kit {
         e.addItem(healCookies);
         e.addItem(healCookies);
         e.addItem(healCookies);
-        e.setLeggings(newItemEnchanted(Material.GOLDEN_LEGGINGS, ChatColor.GOLD + "Soiled Pants", Enchantment.PROTECTION_ENVIRONMENTAL, 1));
-        e.setChestplate(newItem(Material.LEATHER_CHESTPLATE, "saggy tits"));
+        e.setLeggings(newItemEnchanted(Material.GOLDEN_LEGGINGS, ChatColor.GOLD + "Clean Pants", Enchantment.PROTECTION_ENVIRONMENTAL, 1));
+        e.setChestplate(newItem(Material.LEATHER_CHESTPLATE, "Ironed Tutu"));
         giveWool();
         giveWool();
         regenItem("heal", healCookies, 8, 3, 1);
+        setHearts(24);
     }
 
     public void heart() {

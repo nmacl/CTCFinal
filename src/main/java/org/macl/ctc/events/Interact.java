@@ -66,6 +66,8 @@ public class Interact extends DefaultListener {
                     ga.shootGun();
                 else if(m == Material.HONEY_BOTTLE)
                     ga.drinkBooze();
+                else if(m == Material.PRISMARINE_CRYSTALS)
+                    ga.shootPepper();
             }
             if (k instanceof Snowballer) {
                 Snowballer snowball = (Snowballer) k;
@@ -152,6 +154,12 @@ public class Interact extends DefaultListener {
                 else if (m == Material.FEATHER) {
                     art.useUpdraft();
                     event.setCancelled(true);
+                }
+            }
+
+            if (k instanceof Lumberjack jack) {
+                if (m == Material.GOLDEN_AXE) {
+                    jack.sawBlocks();
                 }
             }
         }

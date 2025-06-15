@@ -74,7 +74,13 @@ public class Fisherman extends Kit {
                             && target != p
                             && hitThisShot.add(target.getUniqueId())) {
 
-                        target.setHealth(Math.max(0.5, target.getHealth() - 6));
+                        double airborneDamage = 0;
+
+                        if (!target.isOnGround()) {
+                         airborneDamage = 2;
+                        }
+
+                        target.setHealth(Math.max(0.5, target.getHealth() - (6 + airborneDamage)));
                         target.damage(1, p);
                         p.getWorld().playSound(target.getLocation(),
                                 Sound.BLOCK_BELL_USE, 1f, 1f);
