@@ -149,6 +149,15 @@ public class Players extends DefaultListener {
                 }
             }
         }
+
+        if (event.getDamager() instanceof SmallFireball) {
+            event.setCancelled(true);
+            Entity e = event.getEntity();
+            if (e instanceof Player) {
+                ((Player) e).damage(6.0);
+            }
+        }
+
         if (event.getDamager() instanceof ShulkerBullet) {
             event.setCancelled(true);
             Entity e = event.getEntity();
@@ -159,7 +168,8 @@ public class Players extends DefaultListener {
             }
         }
         if (event.getDamager() instanceof Snowball)
-            event.setDamage(1.8);
+            event.setDamage(1.2);
+
         if (event.getDamager() instanceof Egg) {
             event.setCancelled(true);  // suppress vanilla egg “knockback damage”
             Egg egg = (Egg) event.getDamager();
@@ -215,6 +225,8 @@ public class Players extends DefaultListener {
             }
         }
     }
+
+
 
     @EventHandler
     public void pickup(EntityPickupItemEvent event) {

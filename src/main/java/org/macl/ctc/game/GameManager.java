@@ -308,6 +308,28 @@ public class GameManager {
             return false;
         }
 
+        if (!main.game.started) { // change conditions to make testing outside matches possible
+            Scoreboard score = Bukkit.getScoreboardManager().getMainScoreboard();
+            String p1Team = "1";
+            String p2Team = "2";
+
+            boolean sameTeam;
+
+            for (Team team : score.getTeams()) {
+                if (team.hasEntry(p1.getName())) {
+                    p1Team = team.getName();
+                }
+                if (team.hasEntry(p2.getName())) {
+                    p2Team = team.getName();
+                }
+            }
+
+            sameTeam = p1Team.equals(p2Team);
+
+            return sameTeam;
+        }
+
+
         // both on red?
         boolean bothRed = getRed() != null
                 && getRed().hasEntry(p1.getName())

@@ -36,56 +36,64 @@ public class KitManager implements Listener {
         Kit Manager
      */
 
+    int slot = 0;
+
+    public int getSlot() {
+        int currentSlot = slot;
+        slot++;
+        return currentSlot;
+    }
+
     public KitMenu getMenu() {
         KitMenu menu = new KitMenu(main.prefix + "Kit Menu", 18);
         List<String> gLore = createLore(ChatColor.DARK_PURPLE + "Cane: Knockback 10",
                 ChatColor.LIGHT_PURPLE + "Cookies: Right click player to heal",
                 ChatColor.RED + "No speed");
 
-        menu.setItem(0, ChatColor.LIGHT_PURPLE + "GRANDMA", Enchantment.KNOCKBACK, gLore, Material.STICK);
+        menu.setItem(getSlot(), ChatColor.LIGHT_PURPLE + "GRANDMA", Enchantment.KNOCKBACK, gLore, Material.STICK);
 
         List<String> snowLore = createLore(ChatColor.BLUE + "Rocket Jump: Right click to fly",
                 ChatColor.DARK_BLUE + "Snowball Launcher: Right click for snowballs",
                 ChatColor.WHITE + "Speed: II");
 
-        menu.setItem(1, ChatColor.AQUA + "SNOWBALLER", Enchantment.PROTECTION_FALL, snowLore, Material.SNOWBALL);
+        menu.setItem(getSlot(), ChatColor.AQUA + "SNOWBALLER", Enchantment.PROTECTION_FALL, snowLore, Material.SNOWBALL);
 
 
         List<String> demoLore = createLore(ChatColor.RED + "Egg Grenade",
                 ChatColor.GRAY + "Mine",
                 ChatColor.BOLD +"" + ChatColor.DARK_RED + "Sheep Bomb: Heat seeking sheep");
 
-        menu.setItem(2, ChatColor.DARK_RED + "DEMOLITIONIST", Enchantment.PROTECTION_EXPLOSIONS, demoLore, Material.TNT);
+        menu.setItem(getSlot(), ChatColor.DARK_RED + "DEMOLITIONIST", Enchantment.PROTECTION_EXPLOSIONS, demoLore, Material.TNT);
 
         List<String> buildLore = createLore(ChatColor.DARK_BLUE + "Hammer: Right click build menu",
                 ChatColor.DARK_GRAY + "Shears",
                 ChatColor.GREEN + "Extra Wool!");
 
-        menu.setItem(3, ChatColor.DARK_AQUA + "BUILDER", Enchantment.DIG_SPEED, buildLore, Material.GRASS_BLOCK);
+        menu.setItem(getSlot(), ChatColor.DARK_AQUA + "BUILDER", Enchantment.DIG_SPEED, buildLore, Material.GRASS_BLOCK);
 
         List<String> spyLore = createLore(ChatColor.GREEN + "Poison Dagger",
                 ChatColor.WHITE + "Invisibility",
                 ChatColor.RED + "Can't mine core");
 
-        menu.setItem(4, ChatColor.WHITE + "SPY", Enchantment.ARROW_INFINITE, spyLore, Material.IRON_HOE);
+        menu.setItem(getSlot(), ChatColor.WHITE + "SPY", Enchantment.ARROW_INFINITE, spyLore, Material.IRON_HOE);
 
         List<String> runnerLore = createLore(ChatColor.BLUE + "Runner",
                 ChatColor.GOLD + "Block Run",
                 ChatColor.WHITE + "Polar Deflection Field");
 
-        menu.setItem(5, ChatColor.BLUE + "Runner", Enchantment.FROST_WALKER, runnerLore, Material.LEATHER_BOOTS);
+        menu.setItem(getSlot(), ChatColor.BLUE + "Runner", Enchantment.FROST_WALKER, runnerLore, Material.LEATHER_BOOTS);
 
         List<String> tankLore = createLore(ChatColor.DARK_GREEN + "Gatling Mode",
                 ChatColor.RED + "Hellfire Missle",
                 ChatColor.DARK_AQUA + "Shield");
 
-        menu.setItem(6, ChatColor.GRAY + "Tank", Enchantment.PROTECTION_ENVIRONMENTAL, tankLore, Material.IRON_BLOCK);
+        menu.setItem(getSlot(), ChatColor.GRAY + "Tank", Enchantment.PROTECTION_ENVIRONMENTAL, tankLore, Material.IRON_BLOCK);
 
         List<String> fishLore = createLore(ChatColor.GOLD + "Fishing rod",
                 ChatColor.YELLOW + "Pufferfish Bomb",
                 ChatColor.LIGHT_PURPLE + "Cod Sniper");
 
-        menu.setItem(7, ChatColor.DARK_AQUA + "Fisherman", Enchantment.LUCK, fishLore, Material.FISHING_ROD);
+        menu.setItem(getSlot(), ChatColor.DARK_AQUA + "Fisherman", Enchantment.LUCK, fishLore, Material.FISHING_ROD);
 
         List<String> engineerLore = Arrays.asList(
                 ChatColor.GRAY + "Engineer's Wrench",
@@ -93,7 +101,7 @@ public class KitManager implements Listener {
                 ChatColor.BLUE + "Teleporters"
         );
 
-        menu.setItem(8, ChatColor.DARK_GRAY + "Engineer", Enchantment.DIG_SPEED, engineerLore, Material.DISPENSER);
+//        menu.setItem(getSlot(), ChatColor.DARK_GRAY + "Engineer", Enchantment.DIG_SPEED, engineerLore, Material.DISPENSER);
 
         List<String> grandpaLore = Arrays.asList(
                 ChatColor.GOLD + "Booze",
@@ -102,7 +110,7 @@ public class KitManager implements Listener {
                 ChatColor.DARK_GREEN + "Veteran of many battles"
         );
 
-        menu.setItem(9, ChatColor.LIGHT_PURPLE + "Grandpa", Enchantment.DAMAGE_ALL, grandpaLore, Material.HONEY_BOTTLE);
+        menu.setItem(getSlot(), ChatColor.LIGHT_PURPLE + "Grandpa", Enchantment.DAMAGE_ALL, grandpaLore, Material.HONEY_BOTTLE);
 
         List<String> archerLore = createLore(
                 ChatColor.RED       + "Flame Arrow: Unlimited fire arrows",
@@ -113,13 +121,7 @@ public class KitManager implements Listener {
                 ChatColor.GRAY      + "Gravity Arrow: Lift blocks & players"
         );
 
-        menu.setItem(
-                10,
-                ChatColor.GOLD + "ARCHER",
-                Enchantment.ARROW_DAMAGE,
-                archerLore,
-                Material.BOW
-        );
+        menu.setItem(getSlot(), ChatColor.GOLD + "ARCHER", Enchantment.ARROW_DAMAGE, archerLore, Material.BOW);
 
         List<String> artificerLore = createLore(
                 ChatColor.RED      + "Light enemies ablaze with the Flamethrower",
@@ -127,30 +129,21 @@ public class KitManager implements Listener {
                 ChatColor.AQUA     + "Launch yourself skyward with Updraft",
                 ChatColor.DARK_GRAY+ "Gather enough Void Fragments to form the Void Bomb"
         );
-        menu.setItem(
-                11,
-                ChatColor.GREEN + "ARTIFICER",
-                Enchantment.MENDING,
-                artificerLore,
-                Material.RIB_ARMOR_TRIM_SMITHING_TEMPLATE
-        );
+        menu.setItem(getSlot(), ChatColor.GREEN + "ARTIFICER", Enchantment.MENDING, artificerLore, Material.BLAZE_POWDER);
+
         List<String> lumberjackLore = createLore(
                 ChatColor.YELLOW  + "Destroy all with the Chain Axe",
-                ChatColor.GOLD     + "Chuck your allies with Log Chuck",
-                ChatColor.GREEN     + "Use the power of Sap to rejuvenate allies and debuff enemies",
+                ChatColor.GOLD     + "Chuck your allies and Sap with Log Chuck",
+                ChatColor.GREEN     + "Mystic Sap rejuvenates allies and debuffs enemies",
                 ChatColor.DARK_PURPLE + "Have allies Right-Click you to be ridden!"
         );
-        menu.setItem(
-                12,
-                ChatColor.GOLD + "LUMBERJACK",
-                Enchantment.DIG_SPEED,
-                lumberjackLore,
-                Material.GOLDEN_AXE
-        );
+        menu.setItem(getSlot(), ChatColor.GOLD + "LUMBERJACK", Enchantment.DIG_SPEED, lumberjackLore, Material.GOLDEN_AXE);
 
+        slot = 0;
 
         return menu;
     }
+
 
     public void openMenu(Player p) {
         p.openInventory(getMenu().getKitMenu());
@@ -233,7 +226,7 @@ public class KitManager implements Listener {
                 case BOW:
                     kits.put(p.getUniqueId(), new Archer(main, p, KitType.ARCHER));
                     break;
-                case RIB_ARMOR_TRIM_SMITHING_TEMPLATE:
+                case BLAZE_POWDER:
                     kits.put(p.getUniqueId(), new Artificer(main, p, KitType.ARTIFICER));
                     break;
                 case GOLDEN_AXE:

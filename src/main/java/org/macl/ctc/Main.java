@@ -75,6 +75,8 @@ public final class Main extends JavaPlugin implements CommandExecutor, Listener 
         restricted.add(Material.NETHERITE_BLOCK);
         restricted.add(Material.LAPIS_ORE);
         restricted.add(Material.REDSTONE_ORE);
+        restricted.add(Material.BEDROCK);
+        restricted.add(Material.BARRIER);
 
         new Interact(this);
         new Blocks(this);
@@ -168,7 +170,13 @@ public final class Main extends JavaPlugin implements CommandExecutor, Listener 
                     p.teleport(Bukkit.getWorld(args[1]).getSpawnLocation());
                     broadcast("teleport");
                 }
-            }
+            } else if ((args[0].equalsIgnoreCase("join"))) {
+                if (args[1].equalsIgnoreCase("blue")) {
+                    game.getBlue().addEntry(p.getName());
+                } else if (args[1].equalsIgnoreCase("red")) {
+                    game.getRed().addEntry(p.getName());
+                }
+             }
         }
 
         // If the player (or console) uses our command correct, we can return true

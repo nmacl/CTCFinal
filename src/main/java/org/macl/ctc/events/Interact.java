@@ -3,9 +3,11 @@ package org.macl.ctc.events;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.Sound;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.block.Action;
+import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerItemHeldEvent;
 import org.bukkit.inventory.EquipmentSlot;
@@ -43,12 +45,45 @@ public class Interact extends DefaultListener {
         }
     }
 
+    @EventHandler
+    public void interact(PlayerInteractEntityEvent event) {
+        Entity e = event.getRightClicked();
+        Player p = event.getPlayer();
+
+        main.broadcast("I am a pear");
+
+        if (e instanceof Player pe) {
+            if (kit.kits.get(pe.getUniqueId()) != null) {
+
+                if (!p.isSneaking()) return;
+
+                Kit k = kit.kits.get(pe.getUniqueId());
+                main.broadcast("I have acquired a pear");
+                if (k instanceof Lumberjack) {
+
+
+
+                    if (main.game.sameTeam(
+                            p.getUniqueId(),
+                            pe.getUniqueId())) {
+                        main.broadcast("I am looking at the pear passengers");
+                        if (pe.getPassengers().isEmpty()) {
+                            pe.addPassenger(p);
+                            main.broadcast("I adding a person to passengers");
+//                        }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+
     private void leftClick(PlayerInteractEvent event) {
 
     }
 
     boolean second = false;
-
 
     private void rightClick(PlayerInteractEvent event) {
         if (event.getHand() != EquipmentSlot.HAND) return;
@@ -160,8 +195,21 @@ public class Interact extends DefaultListener {
             if (k instanceof Lumberjack jack) {
                 if (m == Material.GOLDEN_AXE) {
                     jack.sawBlocks();
+                    event.setCancelled(true);
+
+                }
+                if (m == Material.OAK_LOG) {
+                    jack.chuckLog();
+                    event.setCancelled(true);
+                }
+                if (m == Material.HONEYCOMB) {
+                    jack.useMysticSap();
+                    event.setCancelled(true);
                 }
             }
+
+
+
         }
     }
 
@@ -174,9 +222,13 @@ public class Interact extends DefaultListener {
         }
     }
 
+
+
     public void physical(PlayerInteractEvent event) {
         Player p = event.getPlayer();
         Location l = p.getLocation();
+
+
 
         if(event.getClickedBlock().getType() != null) {
             Material m = event.getClickedBlock().getType();
