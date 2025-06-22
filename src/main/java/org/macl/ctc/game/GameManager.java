@@ -32,7 +32,9 @@ public class GameManager {
     private WorldManager world;
     private KitManager kit;
 
+
     public int center = 0;
+    public int lastCenterCapture = 0;
 
     public int redCoreHealth = 3; // Number of times the red core needs to be mined
     public int blueCoreHealth = 3; // Number of times the blue core needs to be mined
@@ -404,11 +406,23 @@ public class GameManager {
             if (redCount >= 5 && center != 1) {
                 main.broadcast("Red has captured the center!", ChatColor.RED);
                 center = 1;
+                if (center != lastCenterCapture) {
+                    // if the last center capture wasnt the same as current, execute stat code
+                }
+                lastCenterCapture = 1;
             }
             if (blueCount >= 5 && center != 2) {
                 main.broadcast("Blue has captured the center!", ChatColor.BLUE);
                 center = 2;
+
+                if (center != lastCenterCapture) {
+                    // stat code goes here...
+                }
+                lastCenterCapture = 2;
             }
+
+
+
 
             switch (center) {
                 case 0:

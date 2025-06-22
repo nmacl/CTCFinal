@@ -50,27 +50,25 @@ public class Interact extends DefaultListener {
         Entity e = event.getRightClicked();
         Player p = event.getPlayer();
 
-        main.broadcast("I am a pear");
+//        main.broadcast("I am a pear");
 
         if (e instanceof Player pe) {
             if (kit.kits.get(pe.getUniqueId()) != null) {
 
-                if (!p.isSneaking()) return;
+                if (!(p.getInventory().getItemInMainHand().getType() == Material.AIR)) return;
 
                 Kit k = kit.kits.get(pe.getUniqueId());
-                main.broadcast("I have acquired a pear");
+//                main.broadcast("I have acquired a pear");
                 if (k instanceof Lumberjack) {
-
-
 
                     if (main.game.sameTeam(
                             p.getUniqueId(),
                             pe.getUniqueId())) {
-                        main.broadcast("I am looking at the pear passengers");
+//                        main.broadcast("I am looking at the pear passengers");
                         if (pe.getPassengers().isEmpty()) {
                             pe.addPassenger(p);
-                            main.broadcast("I adding a person to passengers");
-//                        }
+//                            main.broadcast("I am adding a person to passengers");
+//
                         }
                     }
                 }
