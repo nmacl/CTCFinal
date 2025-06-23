@@ -4,12 +4,14 @@ import com.google.common.collect.Multimap;
 import net.minecraft.world.item.Item;
 import org.bukkit.*;
 import org.bukkit.attribute.AttributeModifier;
+import org.bukkit.block.Block;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.FallingBlock;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.ShulkerBullet;
+import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.inventory.meta.Damageable;
@@ -25,6 +27,7 @@ import org.macl.ctc.Main;
 import java.math.MathContext;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.EventListener;
 import java.util.Objects;
 
 public class Lumberjack extends Kit {
@@ -46,7 +49,6 @@ public class Lumberjack extends Kit {
         enchants.add(Enchantment.DAMAGE_ALL);
 
 
-
         p.removePotionEffect(PotionEffectType.SPEED);
         p.addPotionEffect(new PotionEffect(PotionEffectType.WEAKNESS, 99999999, 0,true,false));
         PlayerInventory e = p.getInventory();
@@ -58,14 +60,14 @@ public class Lumberjack extends Kit {
         e.setChestplate(newItem(Material.IRON_CHESTPLATE, ChatColor.GREEN + "Oiled-Up Shirt"));
         giveWool();
         giveWool();
-        regenItem("Log", logChuck, 12, 2, 1);
+        regenItem("Log", logChuck, 10, 2, 1);
         setHearts(24.0);
     }
 
 
     public void useMysticSap() {
         if (isOnCooldown("Sap")) return;
-        setCooldown("Sap", 35, Sound.ITEM_BOTTLE_FILL, () -> {
+        setCooldown("Sap", 26, Sound.ITEM_BOTTLE_FILL, () -> {
             p.getInventory().setItem(2, mysticSap);
         });
 
@@ -78,10 +80,11 @@ public class Lumberjack extends Kit {
 
         mysticSapProcess m = new mysticSapProcess();
         m.parent = p;
-        m.lifetime = 10*20;
+        m.lifetime = 12*20;
         m.consumable = false;
-        m.rad = 3.5;
-        m.runTaskTimer(main,0,1);
+        m.rad = 4;
+        BukkitTask mTask = m.runTaskTimer(main,0,1);
+        registerTask(mTask); // we want the main sap field to go away when Jack dies, but not the consumable ones
     }
 
     private class mysticSapProcess extends BukkitRunnable {
@@ -161,11 +164,10 @@ public class Lumberjack extends Kit {
         public void addPotionEffect(Player p,PotionEffect e) {
             if (!p.hasPotionEffect(e.getType())) {
                     p.addPotionEffect(e);
-            } else if ((p.getPotionEffect(e.getType()).getDuration() < 2)) {
+            } else if ((p.getPotionEffect(e.getType()).getDuration() < 5)) {
                 p.addPotionEffect(e);
             }
         }
-
 
         public void handleMysticSap() {
 
@@ -182,18 +184,18 @@ public class Lumberjack extends Kit {
             for (Entity e : entities) {
                 if (e instanceof Player p2) {
                     if (main.game.sameTeam(p.getUniqueId(),p2.getUniqueId())) { //same team logic
-                        if (!consumable) { // give constant regen for 1/2 sec
-                            addPotionEffect(p2,new PotionEffect(PotionEffectType.REGENERATION, 30, 1));
-                        } else { // give absorption 4 for 12 secs
+                        if (!consumable) { // give constant regen for 2 sec
+                            addPotionEffect(p2,new PotionEffect(PotionEffectType.REGENERATION, 40, 1));
+                        } else { // give 4 absorption hearts for 12 secs
                             addPotionEffect(p2,new PotionEffect(PotionEffectType.ABSORPTION, 20*12, 1));
                             p.getWorld().playSound(p.getLocation(), Sound.BLOCK_AMETHYST_BLOCK_RESONATE, 1.0f, 1.0f);
                             cancel();
                         }
                     } else { // other team logic
-                        if (!consumable) { // give constant poison 3 for 1 sec
-                            addPotionEffect(p2,new PotionEffect(PotionEffectType.POISON, 10, 2));
+                        if (!consumable) { // give constant poison 3 for 2 sec
+                            addPotionEffect(p2,new PotionEffect(PotionEffectType.POISON, 40, 2));
                         } else { // give poison for 6 sec
-                            addPotionEffect(p2,new PotionEffect(PotionEffectType.POISON, 20*6, 0));
+                            addPotionEffect(p2,new PotionEffect(PotionEffectType.POISON, 20*8, 0));
                             p.getWorld().playSound(p.getLocation(), Sound.ENTITY_BREEZE_DEATH, 1.0f, 0.9f);
                             cancel();
                         }
@@ -230,10 +232,10 @@ public class Lumberjack extends Kit {
 
             p.setLevel(mysticSapUses);
             s = new mysticSapProcess();
-            s.lifetime = 20 * 5;
+            s.lifetime = 20 * 20;
             s.active = false;
             s.consumable = true;
-            s.rad = 1.5;
+            s.rad = 2;
             s.parent = log;
             s.runTaskTimer(main,0,1);
 
@@ -267,7 +269,7 @@ public class Lumberjack extends Kit {
 
     public void logExplode(Location loc) {
         loc.getWorld().playSound(loc, Sound.ENTITY_ZOMBIE_BREAK_WOODEN_DOOR, 5.0f, 0.8f);
-        main.fakeExplode(p,loc,5,3,false,false);
+        main.fakeExplode(p,loc,10,3,false,false);
     }
 
     public void sawBlocks() {
@@ -288,22 +290,25 @@ public class Lumberjack extends Kit {
         Vector vec = p.getEyeLocation().getDirection().normalize().multiply(0.5);
 
         RayTraceResult hit = p.getWorld().rayTraceBlocks(p.getEyeLocation().add(vec), p.getEyeLocation().getDirection(), 4.5);
-//        RayTraceResult hitEntity = p.getWorld().rayTraceEntities(p.getEyeLocation(),p.getEyeLocation().getDirection().multiply(3),5);
+        RayTraceResult hitEntity = p.getWorld().rayTraceEntities(p.getEyeLocation().add(vec), p.getEyeLocation().getDirection(), 4.5);
 
         p.getWorld().spawnParticle(Particle.CRIT, p.getLocation().add(0, 1, 0), 3, 0.2, 0.2, 0.2, 0.1);
 
         if (hit != null && hit.getHitBlock() != null) { //Handle Block Destruction
             if (!main.restricted.contains(hit.getHitBlock().getType())) {
                 hit.getHitBlock().setType(Material.AIR);
+                hit.getHitBlock().breakNaturally();
                 p.getWorld().spawnParticle(Particle.CRIT, hit.getHitBlock().getLocation().add(0.5,0.5,0.5), 20, 0.5, 0.5, 0.5, 0.5
                 );
             }
         }
 
-        if (hit != null && hit.getHitEntity() != null) { // Handle Damage!!
-            Entity e = hit.getHitEntity();
+        if (hitEntity != null && hitEntity.getHitEntity() != null) { // Handle Damage!!
+            Entity e = hitEntity.getHitEntity();
             if (e instanceof Player) {
 
+
+//                main.broadcast("Acquired player");
 //                if (e.getUniqueId() == p.getUniqueId()) {
 //                    return;
 //                }
@@ -312,7 +317,9 @@ public class Lumberjack extends Kit {
                         p.getUniqueId(),
                         e.getUniqueId()
                 )){
-                    ((Player) e).damage(0.5);
+
+//                    main.broadcast("Damaging player");
+                    ((Player) e).damage(0.2);
                     ((Player) e).setNoDamageTicks(0);
                 }
             }
