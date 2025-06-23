@@ -91,5 +91,6 @@
     <orderEntry type="library" scope="PROVIDED" name="Maven: org.apache.httpcomponents:httpcore:4.4.16" level="project" />
     <orderEntry type="library" scope="PROVIDED" name="Maven: commons-codec:commons-codec:1.16.0" level="project" />
     <orderEntry type="library" scope="PROVIDED" name="Maven: org.slf4j:jcl-over-slf4j:1.7.36" level="project" />
+    <orderEntry type="library" scope="PROVIDED" name="Maven: eu.decentsoftware:DecentHolograms:2.9.1" level="project" />
   </component>
 </module>

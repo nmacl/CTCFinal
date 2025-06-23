@@ -51,7 +51,7 @@ public class Blocks extends DefaultListener {
         Block block = event.getBlock();
         if(main.restricted.contains(event.getBlock().getType()) && main.game.started)
             event.setCancelled(true);
-        game.resetCenter();
+        game.resetCenter(null);
 
         event.setDropItems(false);
 
@@ -60,11 +60,11 @@ public class Blocks extends DefaultListener {
         // Handling obsidian specific logic
         if(block.getType() == Material.OBSIDIAN && main.game.started && player.getInventory().getItemInMainHand().getType() == Material.DIAMOND_PICKAXE) {
             ArrayList<Material> nearbyBlocks = getNearbyBlocks(block.getLocation(), 5);  // Assume getNearbyBlocks is implemented elsewhere
-
             for(Material m : nearbyBlocks) {
                 if((game.redHas(player) && game.center == 1 && m == Material.LAPIS_ORE) ||
                         (game.blueHas(player) && game.center == 2 && m == Material.REDSTONE_ORE)) {
                     // Decrement core health and update boss bar here directly, if applicable
+                    main.getStats().recordCoreCrack(player);
                     if (m == Material.LAPIS_ORE) {
                         game.blueCoreHealth--;
                         main.broadcast(ChatColor.BLUE + "The blue core has been damaged!");
@@ -119,7 +119,7 @@ public class Blocks extends DefaultListener {
     public void blockPlace(BlockPlaceEvent event) {
         Block b = event.getBlock();
         Player p = event.getPlayer();
-        game.resetCenter();
+        game.resetCenter(p);
         if (b.getType() == Material.RED_CANDLE)
             if (main.getKits().get(p.getUniqueId()) != null && main.getKits().get(p.getUniqueId()) instanceof Spy) {
                 Spy s = (Spy) main.getKits().get(p.getUniqueId());
@@ -148,7 +148,7 @@ public class Blocks extends DefaultListener {
     public void blockBurn(BlockBurnEvent event) {
         if(main.restricted.contains(event.getBlock().getType()) && main.game.started)
             event.setCancelled(true);
-        game.resetCenter();
+        game.resetCenter(null);
     }
 
     @EventHandler
@@ -160,7 +160,7 @@ public class Blocks extends DefaultListener {
         if(m == Material.RED_STAINED_GLASS_PANE || m == Material.BLUE_STAINED_GLASS_PANE)
             event.setCancelled(true);
         event.setYield(0);
-        game.resetCenter();
+        game.resetCenter(null);
     }
 
     public ArrayList<Material> getNearbyBlocks(Location location, int radius) {

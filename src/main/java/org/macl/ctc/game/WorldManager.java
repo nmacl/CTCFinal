@@ -154,9 +154,6 @@ public class WorldManager {
         }
     }
 
-
-
-
     public void clean(Player p1) {
         isUnloading = true;
         // fix this to kick back with bungee cord
@@ -167,14 +164,21 @@ public class WorldManager {
             red = false;
 
         String text = "";
-        if(red)
+        if(red) {
             text = p1.getName() + ChatColor.RED + " has destroyed the enemy core! Congratulations red team! Thanks for playing :)";
-        else
+            //for(Player p : game.getReds())
+                //main.getStats().recordWin(p.getUniqueId());
+        }
+        else {
             text = p1.getName() + ChatColor.BLUE + " has destroyed the enemy core! Congratulations blue team! Thanks for playing :)";
+            //for(Player p : game.getBlues())
+                //main.getStats().recordWin(p.getUniqueId());
+        }
 
         for(Player p : Bukkit.getOnlinePlayers()) {
             p.teleport(Bukkit.getWorld("world").getSpawnLocation());
         }
+
 
         main.broadcast(text);
 
@@ -186,6 +190,8 @@ public class WorldManager {
         //load map
 
         //create command to teleport there
+
+
 
     }
 

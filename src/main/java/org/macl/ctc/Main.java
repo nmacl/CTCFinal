@@ -1,10 +1,14 @@
 package org.macl.ctc;
 
 import net.md_5.bungee.api.chat.ClickEvent;
+import net.md_5.bungee.api.chat.ComponentBuilder;
+import net.md_5.bungee.api.chat.HoverEvent;
 import org.bukkit.*;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
+import org.bukkit.configuration.file.FileConfiguration;
+import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Arrow;
 import org.bukkit.entity.FishHook;
@@ -23,11 +27,12 @@ import org.bukkit.util.Vector;
 import org.macl.ctc.events.Blocks;
 import org.macl.ctc.events.Interact;
 import org.macl.ctc.events.Players;
-import org.macl.ctc.game.GameManager;
-import org.macl.ctc.game.KitManager;
-import org.macl.ctc.game.WorldManager;
+import org.macl.ctc.game.*;
 import org.macl.ctc.kits.Kit;
 
+import java.io.File;
+import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
@@ -42,6 +47,8 @@ public final class Main extends JavaPlugin implements CommandExecutor, Listener 
     public GameManager game;
     public WorldManager worldManager;
     public KitManager kit;
+    public StatsManager stats;
+    public LeaderboardManager leaderboard;
     public String prefix = ChatColor.GOLD + "[CTC] " + ChatColor.GRAY;
 
     public void send(Player p, String text, ChatColor color) {
@@ -62,11 +69,34 @@ public final class Main extends JavaPlugin implements CommandExecutor, Listener 
     public ArrayList<Listener> listens = new ArrayList<Listener>();
     public ArrayList<Material> restricted = new ArrayList<Material>();
 
+
     @Override
     public void onEnable() {
+
         // Plugin startup logic
         this.getCommand("ctc").setExecutor(this);
         getLogger().info("Started!");
+
+        if (!getDataFolder().exists()) {
+            getDataFolder().mkdirs();
+        }
+
+        // 2) create stats.yml if it doesn't exist
+        File statsFile = new File(getDataFolder(), "stats.yml");
+        if (!statsFile.exists()) {
+            try (PrintWriter out = new PrintWriter(statsFile)) {
+                out.println("stats: {}");                // minimal valid YAML
+            } catch (IOException e) {
+                getLogger().severe("Could not create stats.yml: " + e.getMessage());
+            }
+        }
+
+        // 3) now safely load it
+        FileConfiguration statsCfg = YamlConfiguration.loadConfiguration(statsFile);
+        this.stats = new StatsManager();
+        stats.loadAll(statsCfg);
+
+
         kit = new KitManager(this);
         worldManager = new WorldManager(this);
         game = new GameManager(this);
@@ -88,50 +118,45 @@ public final class Main extends JavaPlugin implements CommandExecutor, Listener 
             getServer().getPluginManager().registerEvents(i, this);
 
         registerEvents();
+        getCommand("stats").setExecutor(new org.macl.ctc.commands.StatsCommand(this));
+
+        leaderboard = new LeaderboardManager(this);
+        leaderboard.init();
+
     }
 
     private void registerEvents() {
         getServer().getPluginManager().registerEvents(this, this);
     }
-    /*private Map<Location, Location> teleporterPairs = new HashMap<>();
-    public boolean isTeleporterLocation(Location loc) {
-        return teleporterPairs.containsKey(loc) || teleporterPairs.containsValue(loc);
-    }
-
-    // Handle teleportation between paired locations
-    public void handleTeleport(Player player, Location currentLocation) {
-        Location destination = teleporterPairs.getOrDefault(currentLocation, null);
-        if (destination == null) {
-            // If not found as key, it might be the value in a key-value pair
-            for (Map.Entry<Location, Location> entry : teleporterPairs.entrySet()) {
-                if (entry.getValue().equals(currentLocation)) {
-                    destination = entry.getKey();
-                    break;
-                }
-            }
-        }
-        if (destination != null && player.hasPermission("teleporter.use")) {
-            player.teleport(destination.add(0, 1, 0)); // Teleport just above to prevent embedding in the block
-            player.playSound(player.getLocation(), Sound.ENTITY_ENDERMAN_TELEPORT, 1f, 1f);
-        }
-    }
-
-    // Register a pair of teleporters
-    public void registerTeleporterPair(Location loc1, Location loc2) {
-        teleporterPairs.put(loc1, loc2);
-    }
-
-    // Unregister teleporters when destroyed or deactivated
-    public void unregisterTeleporter(Location loc) {
-        teleporterPairs.remove(loc);
-        teleporterPairs.values().remove(loc);
-    }*/
 
     @Override
     public void onDisable() {
+        if (stats != null) {
+            File statsFile = new File(getDataFolder(), "stats.yml");
+            FileConfiguration statsCfg = YamlConfiguration.loadConfiguration(statsFile);
+            stats.saveAll(statsCfg);
+            try {
+                statsCfg.save(statsFile);
+            } catch (IOException e) {
+                getLogger().severe("Failed to save stats.yml: " + e.getMessage());
+            }
+        }
         getLogger().info("Ended");
     }
 
+    private String formatLine(String label, int value) {
+        return ChatColor.YELLOW
+                + String.format("%-14s", label + ":")
+                + ChatColor.WHITE
+                + value;
+    }
+
+    private String formatLine(String label, String value) {
+        return ChatColor.YELLOW
+                + String.format("%-14s", label + ":")
+                + ChatColor.WHITE
+                + value;
+    }
     @Override
     public boolean onCommand(CommandSender sender, Command cmd, String label, String[] args) {
         if (sender instanceof Player) {
@@ -242,5 +267,9 @@ public final class Main extends JavaPlugin implements CommandExecutor, Listener 
 
     public HashMap<UUID, Kit> getKits() {
         return kit.kits;
+    }
+
+    public StatsManager getStats() {
+        return stats;
     }
 }

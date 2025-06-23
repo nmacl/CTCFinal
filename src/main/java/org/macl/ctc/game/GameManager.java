@@ -18,7 +18,10 @@ import org.macl.ctc.Main;
 import org.macl.ctc.kits.Kit;
 import org.macl.ctc.kits.Spy;
 
+import javax.annotation.Nullable;
 import java.util.*;
+import java.util.function.BiFunction;
+import java.util.function.ToIntFunction;
 
 public class GameManager {
 
@@ -62,7 +65,7 @@ public class GameManager {
             getRed().addEntry(name);
             Bukkit.getLogger().info("Player " + name + " added to Red team.");
         }
-
+        main.getStats().recordGamePlayed(p);
         setup(p);
     }
 
@@ -180,10 +183,74 @@ public class GameManager {
             }
         }
     }
+    private void broadcastLiveGameAwards() {
+        // 1) Grab all online players
+        List<Player> alive = new ArrayList<>(Bukkit.getOnlinePlayers());
+        if (alive.isEmpty()) return;
+
+        StatsManager sm = main.getStats();
+
+        // 2) Utility to find everyone tied for the top of a stat
+        BiFunction<ToIntFunction<Player>, String, Void> award = (statFn, label) -> {
+            int best = alive.stream()
+                    .mapToInt(statFn)
+                    .max()
+                    .orElse(0);
+
+            List<String> names = alive.stream()
+                    .filter(p -> statFn.applyAsInt(p) == best)
+                    .map(Player::getName)
+                    .toList();
+
+            String joined = String.join(", ", names);
+            main.broadcast(
+                    label
+                            + ChatColor.WHITE + joined
+                            + ChatColor.GRAY + " (" + best + ")",
+                    ChatColor.GOLD
+            );
+            return null;
+        };
+
+        // 3) Broadcast with your colors & labels
+        main.broadcast(ChatColor.GOLD + "=== Live Game Awards ===");
+
+        award.apply(
+                p -> sm.get(p.getUniqueId()).kills(),
+                ChatColor.RED +   "⫸ Offensive MVP(s): "
+        );
+
+        award.apply(
+                p -> sm.get(p.getUniqueId()).captures(),
+                ChatColor.AQUA +  "⫸ Defense MVP(s): "
+        );
+
+        award.apply(
+                p -> sm.get(p.getUniqueId()).coreCracks(),
+                ChatColor.DARK_PURPLE + "⫸ Core MVP(s): "
+        );
+
+        award.apply(
+                p -> sm.get(p.getUniqueId()).deaths(),
+                ChatColor.DARK_RED + "⫸ LVP(s): "
+        );
+
+        main.broadcast(ChatColor.GOLD + "=========================");
+    }
+
+
 
     public void stop(Player stopper) {
         started  = false;
         starting = false;
+
+        boolean redWin = redHas(stopper);
+        Collection<Player> winners = redWin ? getReds() : getBlues();
+        for (Player p : winners) {
+            main.getStats().recordWin(p);
+        }
+
+        broadcastLiveGameAwards();
 
         new BukkitRunnable() {
             @Override public void run() {
@@ -239,42 +306,7 @@ public class GameManager {
         }
     }
 
-    public void respawn(final Player p) {
-        if (!started || p.getWorld().getName().equalsIgnoreCase("world")) {
-            resetPlayer(p, true);
-            return;
-        }
-
-        // one-tick delay so vanilla logic is finished
-        Bukkit.getScheduler().runTaskLater(main, () -> {
-
-            p.setGameMode(GameMode.SPECTATOR);
-
-            Player mate = getRandomTeammate(p);
-            if (mate != null) p.setSpectatorTarget(mate);
-
-            // single 8-second countdown
-            new BukkitRunnable() {
-                int count = 8;
-                @Override public void run() {
-                    if (!p.isOnline()) { cancel(); return; }
-                    p.setLevel(--count);          // 8 ➜ 0
-                    if (count == 0) {
-                        p.setGameMode(GameMode.SURVIVAL);
-                        AttributeInstance maxHealth = p.getAttribute(Attribute.GENERIC_MAX_HEALTH);
-                        if (maxHealth != null) maxHealth.setBaseValue(20);   // <-- here
-                        p.setHealth(maxHealth.getBaseValue());               // heal them fully
-                        teleportSpawn(p);
-                        kit.openMenu(p);
-                        cancel();
-                    }
-                }
-            }.runTaskTimer(main, 20L, 20L);       // start 1 s later so level shows “8”
-
-        }, 1L);
-    }
-
-    private Player getRandomTeammate(Player p) {
+    public Player getRandomTeammate(Player p) {
         List<Player> teammates = new ArrayList<>();
 
         // Check if player is on red or blue team
@@ -377,63 +409,76 @@ public class GameManager {
         return builder.toString();
     }
 
-    public void resetCenter() {
-        // SCHEDULER IMPLEMENTED BECAUSE BLOCK BREAK ISN'T DETECTED ON GET BLOCK AT
-        if (!started)
-            return;
-        Bukkit.getScheduler().runTaskLater(main, () -> {
-            int redCount = 0;
-            int blueCount = 0;
+    public void resetCenter(@Nullable Player capturer) {
+        if (!started) return;
 
-            ArrayList<Location> centers = world.getCenter();
-            for (Location locs : centers) {
-                Block b = locs.getWorld().getBlockAt(locs);
-                if (b.getType() == Material.RED_WOOL)
-                    redCount++;
-                else if (b.getType() == Material.BLUE_WOOL)
-                    blueCount++;
+        Bukkit.getScheduler().runTaskLater(main, () -> {
+            int redCount = 0, blueCount = 0;
+            for (Location loc : world.getCenter()) {
+                Block b = loc.getWorld().getBlockAt(loc);
+                if      (b.getType() == Material.RED_WOOL)  redCount++;
+                else if (b.getType() == Material.BLUE_WOOL) blueCount++;
             }
 
-            // Update the scoreboard with the new center status
             updateScoreboard(redCount, blueCount);
 
-            if (center != 0 && !(redCount >= 5 || blueCount >= 5)) {
+            // did we lose control?
+            if (center != 0 && redCount < 5 && blueCount < 5) {
                 main.broadcast("The center has been reset!");
                 center = 0;
             }
+
+            // red capture event
             if (redCount >= 5 && center != 1) {
                 main.broadcast("Red has captured the center!", ChatColor.RED);
                 center = 1;
+
+                // only record if someone explicitly triggered it
+                if (capturer != null) {
+                    main.getStats().recordCapture(capturer.getUniqueId());
+                    StatsManager.PlayerStats ps = main.getStats().get(capturer.getUniqueId());
+                    capturer.sendMessage(ChatColor.RED +
+                            "You captured the center! Total captures: " + ps.captures());
+                }
             }
+
+            // blue capture event
             if (blueCount >= 5 && center != 2) {
                 main.broadcast("Blue has captured the center!", ChatColor.BLUE);
                 center = 2;
+
+                if (capturer != null) {
+                    main.getStats().recordCapture(capturer.getUniqueId());
+                    StatsManager.PlayerStats ps = main.getStats().get(capturer.getUniqueId());
+                    capturer.sendMessage(ChatColor.BLUE +
+                            "You captured the center! Total captures: " + ps.captures());
+                }
             }
 
+            // give or remove pickaxes as before
             switch (center) {
-                case 0:
-                    for (Player p : getReds())
-                        p.getInventory().remove(Material.DIAMOND_PICKAXE);
-                    for (Player p : getBlues())
-                        p.getInventory().remove(Material.DIAMOND_PICKAXE);
-                    break;
-                case 1:
-                    for (Player p : getBlues())
-                        p.getInventory().remove(Material.DIAMOND_PICKAXE);
-                    for (Player p : getReds())
+                case 0 -> {
+                    getReds().forEach(p -> p.getInventory().remove(Material.DIAMOND_PICKAXE));
+                    getBlues().forEach(p -> p.getInventory().remove(Material.DIAMOND_PICKAXE));
+                }
+                case 1 -> {
+                    getBlues().forEach(p -> p.getInventory().remove(Material.DIAMOND_PICKAXE));
+                    getReds().forEach(p -> {
                         if (!(main.getKits().get(p.getUniqueId()) instanceof Spy))
                             p.getInventory().setItem(8, main.coreCrush());
-                    break;
-                case 2:
-                    for (Player p : getReds())
-                        p.getInventory().remove(Material.DIAMOND_PICKAXE);
-                    for (Player p : getBlues())
+                    });
+                }
+                case 2 -> {
+                    getReds().forEach(p -> p.getInventory().remove(Material.DIAMOND_PICKAXE));
+                    getBlues().forEach(p -> {
                         if (!(main.getKits().get(p.getUniqueId()) instanceof Spy))
                             p.getInventory().setItem(8, main.coreCrush());
-                    break;
+                    });
+                }
             }
         }, 2L);
     }
+
 
     // ******************************//
     //         TEAM MANAGER          //

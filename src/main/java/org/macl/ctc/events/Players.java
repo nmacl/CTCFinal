@@ -16,9 +16,14 @@ import org.bukkit.event.world.ChunkLoadEvent;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.projectiles.ProjectileSource;
+import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.Vector;
 import org.macl.ctc.Main;
 import org.macl.ctc.kits.*;
+
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class Players extends DefaultListener {
     public Players(Main main) {
@@ -127,8 +132,39 @@ public class Players extends DefaultListener {
         event.getBrokenItem().setDurability((short)3);
     }
 
+    // Maps victim UUID → the last time they were damaged by a player (with weapon info)
+    private final Map<UUID, DamageContext> lastDamager = new ConcurrentHashMap<>();
+
+    // Holds the killer and what weapon they used
+    private record DamageContext(Player killer, WeaponType type, long time) {}
+    private enum WeaponType { SWORD, BOW, FISHING_ROD, OTHER }
+
     @EventHandler
     public void onEntityHit(EntityDamageByEntityEvent event) {
+        if (event.getEntity() instanceof Player victim) {
+            Player killer = null;
+            WeaponType wt = WeaponType.OTHER;
+            Entity damager = event.getDamager();
+
+            // direct melee
+            if (damager instanceof Player dk) {
+                killer = dk;
+                Material mat = dk.getInventory().getItemInMainHand().getType();
+                if (mat.name().endsWith("_SWORD"))      wt = WeaponType.SWORD;
+                else if (mat == Material.FISHING_ROD)    wt = WeaponType.FISHING_ROD;
+                else                                     wt = WeaponType.OTHER;
+            }
+            // arrow shot
+            else if (damager instanceof Arrow arr && arr.getShooter() instanceof Player dk) {
+                killer = dk;
+                wt = WeaponType.BOW;
+            }
+
+            if (killer != null && !killer.getUniqueId().equals(victim.getUniqueId())) {
+                lastDamager.put(victim.getUniqueId(),
+                        new DamageContext(killer, wt, System.currentTimeMillis()));
+            }
+        }
         if(event.getDamager() instanceof SpectralArrow) {
             SpectralArrow arrow = (SpectralArrow) event.getDamager();
             event.setDamage(2.25);
@@ -237,6 +273,8 @@ public class Players extends DefaultListener {
     @EventHandler
     public void portal(PlayerMoveEvent event) {
         Player p = event.getPlayer();
+        if(!main.game.started && p.getWorld().getName() == "map")
+            p.teleport(Bukkit.getWorld("world").getSpawnLocation());
         if(event.getTo().getBlock().getType() == Material.NETHER_PORTAL)
             game.stack(p);
         PotionEffect slowness = p.getPotionEffect(PotionEffectType.SLOW);
@@ -278,22 +316,117 @@ public class Players extends DefaultListener {
 
     @EventHandler
     public void death(PlayerDeathEvent event) {
-        event.setDeathMessage(main.prefix + event.getDeathMessage());
-        event.getDrops().clear();
-        if(kit.kits.get(event.getEntity().getUniqueId()) != null) {
-            Kit k = kit.kits.get(event.getEntity().getUniqueId());
-            k.cancelAllRegen();
-            k.cancelAllCooldowns();
-            k.cancelAllTasks();
+        Player victim = event.getEntity();
+
+        // 1) Record the death
+        main.getStats().recordDeath(victim);
+
+        // 2) Lookup & clear the last damager if within the last 10s
+        DamageContext ctx = lastDamager.remove(victim.getUniqueId());
+        Player killer = null;
+        WeaponType wt = null;
+        if (ctx != null && System.currentTimeMillis() - ctx.time() <= 10_000) {
+            killer = ctx.killer();
+            wt    = ctx.type();
+            // 3) Record the kill
+            main.getStats().recordKill(killer);
         }
-        kit.remove(event.getEntity());
+
+        // 4) Build a custom message
+        String msg;
+        EntityDamageEvent causeEvt = victim.getLastDamageCause();
+
+        if (killer != null) {
+            // PvP kill
+            switch (wt) {
+                case SWORD       -> msg = killer.getName() + " viciously slashed "   + victim.getName() + "!";
+                case BOW         -> msg = killer.getName() + " sniped "               + victim.getName() + " from afar!";
+                case FISHING_ROD -> msg = killer.getName() + " reeled in "             + victim.getName() + " like a fish!";
+                default          -> msg = killer.getName() + " eliminated "            + victim.getName() + "!";
+            }
+        } else if (causeEvt != null) {
+            // Environmental or knock-off attribution
+            switch (causeEvt.getCause()) {
+                case VOID                      -> msg = (ctx != null
+                        ? ctx.killer().getName() + " knocked " + victim.getName() + " into the void!"
+                        : victim.getName() + " fell into the void.");
+                case FALL                      -> msg = (ctx != null
+                        ? ctx.killer().getName() + " sent "   + victim.getName() + " plummeting!"
+                        : victim.getName() + " hit the ground too hard.");
+                case LAVA                      -> msg = victim.getName() + " tried to swim in lava.";
+                case DROWNING                  -> msg = victim.getName() + " forgot how to swim.";
+                case FIRE, FIRE_TICK           -> msg = victim.getName() + " was burned to a crisp.";
+                case ENTITY_EXPLOSION,
+                        BLOCK_EXPLOSION           -> msg = victim.getName() + " got blown up.";
+                case LIGHTNING                 -> msg = victim.getName() + " was struck by lightning.";
+                default                        -> msg = victim.getName() + " died mysteriously.";
+            }
+        } else {
+            // Fallback
+            msg = victim.getName() + " died.";
+        }
+
+        // 5) Broadcast & suppress the default message
+        main.broadcast(main.prefix + ChatColor.WHITE + msg);
+        event.setDeathMessage(null);
+
+        // 6) Cleanup drops & kit state
+        event.getDrops().clear();
+        Kit kitObj = kit.kits.remove(victim.getUniqueId());
+        if (kitObj != null) {
+            kitObj.cancelAllCooldowns();
+            kitObj.cancelAllRegen();
+            kitObj.cancelAllTasks();
+        }
     }
 
     @EventHandler
-    public void respawn(PlayerRespawnEvent event) {
+    public void onPlayerRespawn(PlayerRespawnEvent event) {
         Player p = event.getPlayer();
-        game.respawn(event.getPlayer());   // nothing else
+
+        if (!main.game.started) return;
+
+        // 1) Determine where they should reappear after respawn:
+        Location teamSpawn;
+        if (main.game.redHas(p))      teamSpawn = world.getRed();
+        else if (main.game.blueHas(p)) teamSpawn = world.getBlue();
+        else                            teamSpawn = Bukkit.getWorld("world").getSpawnLocation();
+
+        // 2) Set that as the respawn point (this happens *before* the player actually appears)
+        event.setRespawnLocation(teamSpawn);
+
+        // 3) One tick later, put them into Spectator and start the 8s countdown
+        Bukkit.getScheduler().runTaskLater(main, () -> {
+            p.setGameMode(GameMode.SPECTATOR);
+
+            // Optionally follow a teammate
+            Player mate = game.getRandomTeammate(p);
+            if (mate != null) p.setSpectatorTarget(mate);
+
+            // 4) Countdown runnable: after 8s, back to Survival
+            new BukkitRunnable() {
+                int timer = 8;
+                @Override
+                public void run() {
+                    if (!p.isOnline()) { cancel(); return; }
+
+                    if (timer <= 1) {
+                        // back to life
+                        p.setGameMode(GameMode.SURVIVAL);
+                        // teleport again just to be safe
+                        p.teleport(teamSpawn);
+                        main.kit.openMenu(p);
+                        cancel();
+                    } else {
+                        // show a little “respawning in Xs” subtitle
+                        p.sendTitle("", ChatColor.YELLOW + "Respawning in " + (timer-1) + "s", 0, 20, 0);
+                        timer--;
+                    }
+                }
+            }.runTaskTimer(main, 20L, 20L);
+        }, 1L);
     }
+
 
     @EventHandler
     public void onPlayerDamage(EntityDamageEvent event) {
