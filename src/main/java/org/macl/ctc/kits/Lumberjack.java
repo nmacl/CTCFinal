@@ -268,8 +268,8 @@ public class Lumberjack extends Kit {
     }
 
     public void logExplode(Location loc) {
-        loc.getWorld().playSound(loc, Sound.ENTITY_ZOMBIE_BREAK_WOODEN_DOOR, 5.0f, 0.8f);
-        main.fakeExplode(p,loc,10,3,false,false);
+        loc.getWorld().playSound(loc, Sound.ENTITY_ZOMBIE_BREAK_WOODEN_DOOR, 2.0f, 0.8f);
+        main.fakeExplode(p,loc,12,3,false,false,false);
     }
 
     public void sawBlocks() {

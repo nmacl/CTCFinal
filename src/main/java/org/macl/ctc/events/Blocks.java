@@ -183,7 +183,7 @@ public class Blocks extends DefaultListener {
         if(event.getEntity().getShooter() instanceof Player && event.getEntity() instanceof Egg) {
             Player p = (Player) event.getEntity().getShooter();
             if(b != null) {
-                main.fakeExplode(p, b.getLocation(), 8, 6, false, true);
+                main.fakeExplode(p, b.getLocation(), 8, 6, false, true,true);
             }
 
         }

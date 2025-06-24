@@ -248,6 +248,33 @@ public class Players extends DefaultListener {
             }
             return;
         }
+
+        if (event.getDamager() instanceof Player p) {
+            // on Cane (stick) hit
+//            main.broadcast("registered damaged");
+            if(main.getKits().get(p.getUniqueId()) != null && main.getKits().get(p.getUniqueId()) instanceof Grandma g && p.getInventory().getItemInMainHand().getType() == Material.STICK) {
+                g.onCaneHit();
+//                main.broadcast("grandma hit with cane");
+            }
+            //on Classic Cane (blaze rod) hit
+            else if(main.getKits().get(p.getUniqueId()) != null && main.getKits().get(p.getUniqueId()) instanceof Grandma g && p.getInventory().getItemInMainHand().getType() == Material.BLAZE_ROD) {
+                g.onClassicCaneHit();
+
+//                 new BukkitRunnable() {
+//
+//                     public void run() {
+//                         Vector velocity = event.getEntity().getVelocity();
+//                         Vector upVec = new Vector(0.0f,0.5f,0.0f);
+//                         event.getEntity().setVelocity(velocity.add(upVec));}
+//
+//                 }.runTaskLater(main,1L);
+
+
+
+//                main.broadcast("grandma hit with classic cane");
+            }
+        }
+
         if(event.getEntity() instanceof Player) {
             Player p = (Player) event.getEntity();
             if(event.getDamager() instanceof Player) {
@@ -258,6 +285,7 @@ public class Players extends DefaultListener {
                     p.addPotionEffect(new PotionEffect(PotionEffectType.BLINDNESS, 20*2, 0));
                     p.addPotionEffect(new PotionEffect(PotionEffectType.POISON, 20 * 3, 2));
                 }
+
             }
         }
     }
@@ -282,6 +310,7 @@ public class Players extends DefaultListener {
         // getPotionEffect returns null if they don't have that effect
         if (slowness != null && slowness.getAmplifier() > 10) {
             // amplifier is zero‐based (0 = Slowness I, 1 = Slowness II, …)
+            event.getPlayer().setFreezeTicks(10);
             event.setCancelled(true);
         }
         if(!main.game.started)

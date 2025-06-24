@@ -113,6 +113,12 @@ public class Interact extends DefaultListener {
                 Grandma g = (Grandma) k;
                 if(m == Material.COOKIE)
                     g.heart();
+                if(m == Material.MINECART)
+                    g.useScooter();
+                if(m == Material.FIREWORK_STAR)
+                    g.scooterExplode();
+                if(m == Material.FEATHER)
+                    g.scooterJump();
             }
             if(k instanceof Spy) {
                 Spy s = (Spy) k;
@@ -252,9 +258,9 @@ public class Interact extends DefaultListener {
                     public void run() {
                         event.getClickedBlock().getLocation().getWorld().getBlockAt(event.getClickedBlock().getLocation()).setType(Material.AIR);
                         p.getLocation().getWorld().createExplosion(event.getClickedBlock().getLocation(), 5f, true);
-                        main.fakeExplode(p, l, 24, 8, true, true);
+                        main.fakeExplode(p, l, 24, 8, true, true,true);
                     }
-                }.runTaskLater(main, 20*2L);
+                }.runTaskLater(main, 15*2L);
             }
         }
     }

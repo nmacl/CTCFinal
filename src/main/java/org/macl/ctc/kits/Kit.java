@@ -36,9 +36,10 @@ public class Kit implements Listener {
 
     private final List<BukkitTask> activeTasks = new ArrayList<>();
 
-    public void regenItem(String name, ItemStack item, int seconds, int maxAmt, int slot) {
+    public RegenItem regenItem(String name, ItemStack item, int seconds, int maxAmt, int slot) {
         RegenItem regen = new RegenItem(this, p, name, item, seconds, maxAmt, slot);
         regenItems.put(name, regen);
+        return regen;
     }
 
     /** Register a BukkitTask so we can cancel it later. */

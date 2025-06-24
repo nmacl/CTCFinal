@@ -207,10 +207,10 @@ public final class Main extends JavaPlugin implements CommandExecutor, Listener 
         // If the player (or console) uses our command correct, we can return true
         return true;
     }
-    public void fakeExplode(Player p, Location l, int maxDamage, int maxDistance, boolean damage1, boolean fire) {
+    public void fakeExplode(Player p, Location l, int maxDamage, int maxDistance, boolean fire, boolean breaksBlocks, boolean damagesAllies) {
         Location center = l.add(0, 1, 0); // Center of explosion
         World world = center.getWorld();
-        world.createExplosion(center, 2f, damage1, fire); // Visual explosion only
+        world.createExplosion(center, 2f, fire, breaksBlocks); // Visual explosion only
 
         int numberOfRays = 6; // Total number of rays to cast
         double[] offsets = {0, 1, 2, 3, 4, 5}; // Vertical offsets for ray casting
@@ -218,8 +218,16 @@ public final class Main extends JavaPlugin implements CommandExecutor, Listener 
         for (org.bukkit.entity.Entity entity : world.getNearbyEntities(center, maxDistance, maxDistance, maxDistance)) {
             if (entity instanceof Player) {
                 Player player = (Player) entity;
+
+                UUID p1ID = p.getUniqueId();
+                UUID p2ID = player.getUniqueId();
+
                 if(player.getUniqueId() == p.getUniqueId())
                     continue;
+
+                if (game.sameTeam(p1ID,p2ID) && !damagesAllies)
+                    continue;
+
                 Location playerLocation = player.getLocation();
 
                 double distance = center.distance(playerLocation);
@@ -255,6 +263,8 @@ public final class Main extends JavaPlugin implements CommandExecutor, Listener 
             }
         }
     }
+
+
 
     public ItemStack coreCrush() {
         ItemStack crusher = new ItemStack(Material.DIAMOND_PICKAXE, 1);

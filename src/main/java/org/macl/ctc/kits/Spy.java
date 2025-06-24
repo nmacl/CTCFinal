@@ -42,7 +42,7 @@ public class Spy extends Kit {
         p.getInventory().addItem(newItem(Material.RED_CANDLE, ChatColor.DARK_RED + "Remote Explosive", 1));
         giveWool();
         giveWool();
-        regenItem("cloak", newItem(Material.ENDER_PEARL, ChatColor.DARK_PURPLE + "Cloak (Teleport)"), 40, 2, 1);
+        regenItem("cloak", newItem(Material.ENDER_PEARL, ChatColor.DARK_PURPLE + "Cloak (Teleport)"), 35, 3, 1);
         BukkitTask inv = new spyInvis().runTaskTimer(main, 0L, 1L);
         this.registerTask(inv);
         p.getInventory().remove(Material.DIAMOND_PICKAXE);
@@ -91,8 +91,8 @@ public class Spy extends Kit {
                 return;
             }
             if(timer == 35) {
-                main.fakeExplode(p, getDetonate(), 18, 6, true, false);
-                p.getWorld().createExplosion(p.getLocation(), 2f, false, true);
+                main.fakeExplode(p, getDetonate(), 18, 6, true, false,true);
+                p.getWorld().createExplosion(getDetonate(), 2f, false, true);
                 this.cancel();
                 detonate = null;
 

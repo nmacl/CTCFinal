@@ -289,7 +289,7 @@ public class Tank extends Kit {
                         }
                         time++;
                         if(time > 20*25 || (p.getFallDistance() == 0 && time > 80) ) {
-                            main.fakeExplode(p, p.getLocation(), 15, 10, false, false);
+                            main.fakeExplode(p, p.getLocation(), 15, 10, false, false,true);
                             p.getWorld().createExplosion(p.getLocation(), 2f, false, true);
                             p.setInvulnerable(false);
                             p.teleport(previousLoc);

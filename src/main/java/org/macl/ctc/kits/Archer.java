@@ -283,7 +283,6 @@ public class Archer extends Kit {
         }
         p.getInventory().setHelmet(helmet);
         giveWool();
-        giveWool();
     }
 
     private void initializeCanShoot() {

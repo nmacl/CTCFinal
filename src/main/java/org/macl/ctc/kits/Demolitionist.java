@@ -94,7 +94,7 @@ public class Demolitionist extends Kit {
             if(timer == 80)
                 sheep.setColor(DyeColor.BLACK);
             if(timer == 100) {
-                main.fakeExplode(p, sheep.getLocation(), 20, 8, true, true);
+                main.fakeExplode(p, sheep.getLocation(), 20, 8, true, true,true);
                 sheep.setHealth(0);
                 this.cancel();
             }
