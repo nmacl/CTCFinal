@@ -16,22 +16,53 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scheduler.BukkitTask;
 import org.macl.ctc.Main;
+import org.bukkit.entity.Entity;
+import org.bukkit.entity.LivingEntity;
+import org.bukkit.util.Vector;
+import org.bukkit.event.entity.ProjectileHitEvent;
 
 public class Snowballer extends Kit {
 
     public ItemStack rocketJump = newItem(Material.GOLDEN_HOE, ChatColor.YELLOW + "Rocket Jump");
+    public ItemStack iceShieldItem = newItem(Material.IRON_SHOVEL, ChatColor.AQUA + "Ice Shield");
 
     public Snowballer(Main main, Player p, KitType type) {
         super(main, p, type);
         e.addItem(newItem(Material.WOODEN_SWORD, ChatColor.DARK_BLUE + "Snowball Launcher"));
         e.addItem(rocketJump);
+        e.addItem(iceShieldItem);
         e.setBoots(newItemEnchanted(Material.DIAMOND_BOOTS, "Feather Boots", Enchantment.PROTECTION_FALL, 7));
         giveWool();
         giveWool();
         setHearts(16);
     }
+
+    //snoot snowball faaster
     public void shootSnowball() {
-        p.launchProjectile(Snowball.class);
+        Snowball snowball = p.launchProjectile(Snowball.class, p.getLocation().getDirection().multiply(2.5));
+        snowball.setShooter(p);
+        snowball.setVelocity(snowball.getVelocity().multiply(1.5));
+        snowball.setCustomName("IceBall");
+        snowball.setCustomNameVisible(false);
+    }
+
+    //boom kapow get knocked band and knocked up
+    public void useIceShield() {
+        if (!isOnCooldown("Ice Shield")) {
+            p.addPotionEffect(new PotionEffect(PotionEffectType.DAMAGE_RESISTANCE, 100, 1));
+            p.getWorld().spawnParticle(Particle.SNOW_SHOVEL, p.getLocation().add(0, 1, 0), 20, 0.5, 1, 0.5);
+            double radius = 5.0;
+            for (Entity ent : p.getNearbyEntities(radius, radius, radius)) {
+                if (ent instanceof LivingEntity && !ent.equals(p)) {
+                    Vector knockback = ent.getLocation().toVector()
+                            .subtract(p.getLocation().toVector())
+                            .normalize()
+                            .multiply(1.2);
+                    ent.setVelocity(knockback);
+                }
+            }
+            setCooldown("Ice Shield", 10, Sound.BLOCK_PACKED_ICE_BREAK);
+        }
     }
 
     public class rocketTrail extends BukkitRunnable {
