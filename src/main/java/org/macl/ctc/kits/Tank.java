@@ -6,6 +6,7 @@ import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.entity.Arrow;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Snowball;
 import org.bukkit.event.player.PlayerTeleportEvent;
@@ -20,7 +21,7 @@ import org.macl.ctc.Main;
 import java.util.ArrayList;
 
 public class Tank extends Kit {
-    
+
     ItemStack shield = (main.game.redHas(p)) ? newItem(Material.RED_STAINED_GLASS_PANE, ChatColor.RED + "Shield") : newItem(Material.BLUE_STAINED_GLASS_PANE, ChatColor.BLUE + "Shield");
     ItemStack glass = (main.game.redHas(p)) ? new ItemStack(Material.RED_STAINED_GLASS_PANE) : new ItemStack(Material.BLUE_STAINED_GLASS_PANE);
 
@@ -32,7 +33,7 @@ public class Tank extends Kit {
     public Tank(Main main, Player p, KitType type) {
         super(main, p, type);
         p.getInventory().addItem(gun);
-        p.getInventory().addItem(newItem(Material.FLINT_AND_STEEL, ChatColor.RED + "Hellfire Missle", 1));
+        p.getInventory().addItem(newItem(Material.COAL, ChatColor.RED + "Hellfire Missle", 1));
         p.getInventory().addItem(glass);
         e.setChestplate(new ItemStack(Material.IRON_CHESTPLATE));
         e.setLeggings(newItem(Material.IRON_LEGGINGS, "piss pants"));
@@ -171,8 +172,8 @@ public class Tank extends Kit {
 
                         item.setItemMeta(itemMeta);
 
-
-                        p.launchProjectile(Snowball.class);
+                        Snowball b = p.launchProjectile(Snowball.class);
+                        b.setVelocity(b.getVelocity().multiply(1.35));
                         // if over heat cancel
                         p.getWorld().playSound(p.getLocation(), Sound.ITEM_FLINTANDSTEEL_USE, 1f,0.1f);
                         timer++;
@@ -250,91 +251,128 @@ public class Tank extends Kit {
     Location previousLoc = null;
 
     int count = 0;
+
+    private Material savedBlockType = null;
+
     public void hellfire() {
-        if(inHellfire || isOnCooldown("hellfire"))
+        if (inHellfire || isOnCooldown("hellfire"))
             return;
-        BukkitTask t = new BukkitRunnable() {
+        previousLoc      = p.getLocation();  // already there
+        savedBlockType   = previousLoc.clone().add(0, -1, 0).getBlock().getType();  // NEW
+        // Task: spawn Hellfire particles above player
+        BukkitTask hellfireEffectTask = new BukkitRunnable() {
             @Override
             public void run() {
                 count++;
-                if(count == 15) {
+                if (count == 15) {
                     this.cancel();
                     count = 0;
                 }
                 p.getWorld().spawnParticle(Particle.DRIP_LAVA, p.getLocation(), 20);
             }
         }.runTaskTimer(main, 0L, 1L);
-        registerTask(t);
+        registerTask(hellfireEffectTask);
 
         p.getWorld().playSound(p.getLocation(), Sound.BLOCK_NOTE_BLOCK_DIDGERIDOO, 5f, 1f);
         setCooldown("hellfire", 20, Sound.ENTITY_EXPERIENCE_ORB_PICKUP);
         inHellfire = true;
         previousLoc = p.getLocation();
 
-        Location ps = new Location(p.getWorld(), p.getLocation().getX(), p.getLocation().getY() + 150, p.getLocation().getZ());
+        World  w       = p.getWorld();
+        double targetY = Math.min(previousLoc.getY() + 120, w.getMaxHeight() - 2);
+        Location ps    = previousLoc.clone();
+        ps.setY(targetY);
+        ps.getChunk().load();   // make sure the chunk exists
 
-        BukkitTask t1 = new BukkitRunnable() {
+        BukkitTask hellfireTeleportTask = new BukkitRunnable() {
             @Override
             public void run() {
-                p.teleport(ps, PlayerTeleportEvent.TeleportCause.PLUGIN);
+                boolean ok = p.teleport(ps, PlayerTeleportEvent.TeleportCause.PLUGIN);
+                main.getLogger().info("[Hellfire] teleported=" + ok + "  targetY=" + ps.getY());
                 p.setRotation(0, 90);
                 p.setInvulnerable(true);
-                BukkitTask t2 = new BukkitRunnable() {
+
+                // Task: handle fall, auto-explosion on proximity, and timed explosion
+                BukkitTask hellfireFallTask = new BukkitRunnable() {
                     @Override
                     public void run() {
-                        //add checks
-                        if(p.isDead()) {
-                            this.cancel();
-                            return;
+                        // Auto-explode if any other player is very close
+                        for (Entity ent : p.getWorld().getNearbyEntities(p.getLocation(), 2, 2, 2)) {
+                            if (ent instanceof Player && !ent.equals(p)) {
+                                main.fakeExplode(p, p.getLocation(), 15, 10, false, false, true);
+                                p.getWorld().createExplosion(p.getLocation(), 2f, false, true);
+                                p.setInvulnerable(false);
+                                p.teleport(previousLoc);        // go back to ground
+                                p.setFallDistance(0f);          // clear any pending fall
+                                p.setInvulnerable(false);
+                                previousLoc = null;
+                                inHellfire = false;
+                                this.cancel();
+                                return;
+                            }
                         }
+
                         time++;
-                        if(time > 20*25 || (p.getFallDistance() == 0 && time > 80) ) {
-                            main.fakeExplode(p, p.getLocation(), 15, 10, false, false,true);
+                        if (time > 20 * 25 || (p.getFallDistance() == 0 && time > 80)) {
+                            main.fakeExplode(p, p.getLocation(), 15, 10, false, false, true);
                             p.getWorld().createExplosion(p.getLocation(), 2f, false, true);
                             p.setInvulnerable(false);
                             p.teleport(previousLoc);
                             previousLoc = null;
+                            inHellfire = false;
                             this.cancel();
                             time = 0;
-                            inHellfire = false;
-                            return;
+                        } else {
+                            p.getWorld().spawnParticle(Particle.FLAME, p.getLocation(), 10);
+                            p.setVelocity(p.getLocation().getDirection().multiply(1.9));
+                            p.getWorld().playSound(p.getLocation(), Sound.ENTITY_FIREWORK_ROCKET_SHOOT, 5f, 0.5f);
                         }
-                        p.getWorld().spawnParticle(Particle.FLAME, p.getLocation(), 10);
-                        p.setVelocity(p.getLocation().getDirection().multiply(1.9));
-                        p.getWorld().playSound(p.getLocation(), Sound.ENTITY_FIREWORK_ROCKET_SHOOT, 5f, 0.5f);
                     }
                 }.runTaskTimer(main, 0L, 1L);
-                registerTask(t2);
+                registerTask(hellfireFallTask);
             }
         }.runTaskLater(main, 8L);
-        registerTask(t1);
-
+        registerTask(hellfireTeleportTask);
     }
-
     public void exit() {
         setCooldown("gatling", 20, Sound.ENTITY_EXPERIENCE_ORB_PICKUP);
 
         BukkitTask t = new BukkitRunnable() {
             @Override
             public void run() {
+
+                /* 1️⃣  restore movement & sounds (unchanged) */
                 p.removePotionEffect(PotionEffectType.SLOW);
                 p.playSound(p.getLocation(), Sound.ENTITY_IRON_GOLEM_DEATH, 1f, 1f);
+
+                /* 2️⃣  clear the iron blocks (unchanged) */
                 e.clear();
-                for(Location loc : locs)
-                    loc.getBlock().setType(Material.AIR);
-                p.getLocation().add(0,-1,0).getBlock().setType(Material.STONE);
+                for (Location loc : locs) loc.getBlock().setType(Material.AIR);
+
+                /* 3️⃣  put back the original block if it’s not restricted */
+                Block below = p.getLocation().clone().add(0, -1, 0).getBlock();
+                if (savedBlockType != null                     // we have a saved value
+                        && !main.restricted.contains(savedBlockType)   // that value is allowed
+                        && !main.restricted.contains(below.getType())) { // and restoring is allowed
+                    below.setType(savedBlockType);
+                }
+                savedBlockType = null;   // reset for next run
+
+                /* 4️⃣  rest of the inventory / armour reset (unchanged except COAL → FLINT_AND_STEEL) */
                 p.getInventory().addItem(gun);
-                p.getInventory().addItem(newItem(Material.FLINT_AND_STEEL, ChatColor.RED + "Hellfire Missle", 1));
-                if(!shieldOn)
-                    p.getInventory().addItem(glass);
+                p.getInventory().addItem(newItem(Material.FLINT_AND_STEEL,
+                        ChatColor.RED + "Hellfire Missle", 1));
+                if (!shieldOn) p.getInventory().addItem(glass);
+
                 e.setItem(3, new ItemStack(wool, 64));
                 e.setItem(4, new ItemStack(wool, 64));
                 e.setChestplate(new ItemStack(Material.IRON_CHESTPLATE));
                 e.setLeggings(newItem(Material.IRON_LEGGINGS, "piss pants"));
                 e.setBoots(new ItemStack(Material.NETHERITE_BOOTS));
-                setup = false;
+
+                setup  = false;
                 gatling = false;
-                usage = 0;
+                usage  = 0;
             }
         }.runTaskLater(main, 2L);
         registerTask(t);

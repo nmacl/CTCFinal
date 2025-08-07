@@ -303,25 +303,26 @@ public class Lumberjack extends Kit {
             }
         }
 
-        if (hitEntity != null && hitEntity.getHitEntity() != null) { // Handle Damage!!
-            Entity e = hitEntity.getHitEntity();
-            if (e instanceof Player) {
+        if (hitEntity != null && hitEntity.getHitEntity() instanceof Player) {
+            Player victim = (Player) hitEntity.getHitEntity();
 
+            // Skip teammates
+            if (!main.game.sameTeam(p.getUniqueId(), victim.getUniqueId())) {
+                double dmg = 0.5;
+                double newHp = victim.getHealth() - dmg;
 
-//                main.broadcast("Acquired player");
-//                if (e.getUniqueId() == p.getUniqueId()) {
-//                    return;
-//                }
-
-                if (!main.game.sameTeam(
-                        p.getUniqueId(),
-                        e.getUniqueId()
-                )){
-
-//                    main.broadcast("Damaging player");
-                    ((Player) e).damage(0.2);
-                    ((Player) e).setNoDamageTicks(0);
+                if (newHp <= 0.0) {
+                    // 1) record the kill
+                    main.getStats().recordKill(p);
+                    // 2) actually kill them
+                    victim.setHealth(0);
+                } else {
+                    // just apply damage
+                    victim.setHealth(newHp);
                 }
+
+                // allow immediate follow-up hits
+                victim.setNoDamageTicks(0);
             }
         }
     }

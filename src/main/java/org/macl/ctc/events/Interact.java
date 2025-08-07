@@ -11,6 +11,7 @@ import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerItemHeldEvent;
 import org.bukkit.inventory.EquipmentSlot;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.Vector;
 import org.macl.ctc.Main;
@@ -84,13 +85,19 @@ public class Interact extends DefaultListener {
     boolean second = false;
 
     private void rightClick(PlayerInteractEvent event) {
-        if (event.getHand() != EquipmentSlot.HAND) return;
-        // 2) only care about right‐click
+        // we only care about right-click actions
         Action a = event.getAction();
         if (a != Action.RIGHT_CLICK_AIR && a != Action.RIGHT_CLICK_BLOCK) return;
 
-        Player p = event.getPlayer();
-        Material m = event.getPlayer().getInventory().getItemInMainHand().getType();
+        Player    p   = event.getPlayer();
+        ItemStack itm = (event.getHand() == EquipmentSlot.HAND)
+                ? p.getInventory().getItemInMainHand()
+                : p.getInventory().getItemInOffHand();
+
+        // No item? nothing to do
+        if (itm == null || itm.getType() == Material.AIR) return;
+
+        Material m = itm.getType();
         if (kit.kits.get(p.getUniqueId()) != null) {
             Kit k = kit.kits.get(p.getUniqueId());
             if(k instanceof Grandpa) {
@@ -157,9 +164,8 @@ public class Interact extends DefaultListener {
                     t.gatling(event.getBlockFace());
                 if(m == Material.FLINT)
                     t.exit();
-                if(m == Material.FLINT_AND_STEEL) {
+                if(m == Material.COAL) {
                     t.hellfire();
-                    event.setCancelled(true);
                 }
             }
             if(k instanceof Fisherman) {

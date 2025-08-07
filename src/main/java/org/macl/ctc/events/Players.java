@@ -17,6 +17,7 @@ import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.projectiles.ProjectileSource;
 import org.bukkit.scheduler.BukkitRunnable;
+import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.util.Vector;
 import org.macl.ctc.Main;
 import org.macl.ctc.kits.*;
@@ -101,8 +102,9 @@ public class Players extends DefaultListener {
     public void entityDamage(EntityDamageEvent event) {
         if(event.getEntity() instanceof Player) {
             Player p = (Player) event.getEntity();
-            if(event.getCause() == EntityDamageEvent.DamageCause.VOID)
-                p.setHealth(0);
+            if (event.getCause() == EntityDamageEvent.DamageCause.VOID) {
+                event.setDamage(p.getHealth());
+            }
             if(main.getKits().get(p.getUniqueId()) != null && main.getKits().get(p.getUniqueId()) instanceof Spy) {
                 ((Spy) main.getKits().get(p.getUniqueId())).uninvis();
             }
@@ -133,11 +135,17 @@ public class Players extends DefaultListener {
     }
 
     // Maps victim UUID → the last time they were damaged by a player (with weapon info)
-    private final Map<UUID, DamageContext> lastDamager = new ConcurrentHashMap<>();
+    public final Map<UUID, DamageContext> lastDamager = new ConcurrentHashMap<>();
 
     // Holds the killer and what weapon they used
-    private record DamageContext(Player killer, WeaponType type, long time) {}
-    private enum WeaponType { SWORD, BOW, FISHING_ROD, OTHER }
+    public record DamageContext(Player killer, WeaponType type, long time) {}
+    public enum WeaponType { SWORD, BOW, FISHING_ROD, FIREBALL, PEPPER, OTHER }
+    public void tagLastDamager(Player victim, Player killer) {
+        lastDamager.put(
+                victim.getUniqueId(),
+                new DamageContext(killer, WeaponType.OTHER, System.currentTimeMillis())
+        );
+    }
 
     @EventHandler
     public void onEntityHit(EntityDamageByEntityEvent event) {
@@ -248,7 +256,6 @@ public class Players extends DefaultListener {
             }
             return;
         }
-
         if (event.getDamager() instanceof Player p) {
             // on Cane (stick) hit
 //            main.broadcast("registered damaged");
@@ -274,7 +281,6 @@ public class Players extends DefaultListener {
 //                main.broadcast("grandma hit with classic cane");
             }
         }
-
         if(event.getEntity() instanceof Player) {
             Player p = (Player) event.getEntity();
             if(event.getDamager() instanceof Player) {
@@ -285,10 +291,10 @@ public class Players extends DefaultListener {
                     p.addPotionEffect(new PotionEffect(PotionEffectType.BLINDNESS, 20*2, 0));
                     p.addPotionEffect(new PotionEffect(PotionEffectType.POISON, 20 * 3, 2));
                 }
-
             }
         }
     }
+
 
 
 
@@ -396,9 +402,8 @@ public class Players extends DefaultListener {
         }
 
         // 5) Broadcast & suppress the default message
-        main.broadcast(main.prefix + ChatColor.WHITE + msg);
-        event.setDeathMessage(null);
-
+        event.setDeathMessage("");
+        main.broadcast(msg);
         // 6) Cleanup drops & kit state
         event.getDrops().clear();
         Kit kitObj = kit.kits.remove(victim.getUniqueId());
@@ -427,10 +432,6 @@ public class Players extends DefaultListener {
         // 3) One tick later, put them into Spectator and start the 8s countdown
         Bukkit.getScheduler().runTaskLater(main, () -> {
             p.setGameMode(GameMode.SPECTATOR);
-
-            // Optionally follow a teammate
-            Player mate = game.getRandomTeammate(p);
-            if (mate != null) p.setSpectatorTarget(mate);
 
             // 4) Countdown runnable: after 8s, back to Survival
             new BukkitRunnable() {

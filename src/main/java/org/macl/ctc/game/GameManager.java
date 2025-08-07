@@ -68,6 +68,42 @@ public class GameManager {
         main.getStats().recordGamePlayed(p);
         setup(p);
     }
+    // In GameManager.java
+
+    /**
+     * Puts a player on the Red team (removing them from Blue if present).
+     */
+    public void joinRed(Player p) {
+        // remove from Blue if they were there
+        Team blue = gameScoreboard.getTeam(BLUE_TEAM_NAME);
+        if (blue != null) blue.removeEntry(p.getName());
+
+        // add to Red
+        Team red = gameScoreboard.getTeam(RED_TEAM_NAME);
+        if (red != null) {
+            red.addEntry(p.getName());
+            // make sure they see the right scoreboard
+            p.setScoreboard(gameScoreboard);
+        }
+    }
+
+    /**
+     * Puts a player on the Blue team (removing them from Red if present).
+     */
+    public void joinBlue(Player p) {
+        // remove from Red if they were there
+        Team red = gameScoreboard.getTeam(RED_TEAM_NAME);
+        if (red != null) red.removeEntry(p.getName());
+
+        // add to Blue
+        Team blue = gameScoreboard.getTeam(BLUE_TEAM_NAME);
+        if (blue != null) {
+            blue.addEntry(p.getName());
+            // make sure they see the right scoreboard
+            p.setScoreboard(gameScoreboard);
+        }
+    }
+
 
     public void start() {
         started = true;
@@ -251,6 +287,7 @@ public class GameManager {
         }
 
         broadcastLiveGameAwards();
+
 
         new BukkitRunnable() {
             @Override public void run() {

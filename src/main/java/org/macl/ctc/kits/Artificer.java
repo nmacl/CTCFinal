@@ -49,70 +49,69 @@ public class Artificer extends Kit {
     }
 
     // Flamethrower: 9s cooldown, does short burst of fire
+// ─── Flamethrower ─────────────────────────────────────────────────────────────
     public void useFlamethrower() {
         if (isOnCooldown("Flamethrower")) return;
-        // Start cooldown and reset item on finish
         setCooldown("Flamethrower", 9, Sound.BLOCK_AMETHYST_CLUSTER_HIT, () -> {
             p.getInventory().setItem(0, newItem(Material.RIB_ARMOR_TRIM_SMITHING_TEMPLATE, ChatColor.RED + "Flamethrower"));
         });
-        // Show recharging icon
-        p.getInventory().setItem(0, newItem(Material.HOST_ARMOR_TRIM_SMITHING_TEMPLATE, ChatColor.AQUA + "Recharging..."));
+        p.getInventory().setItem(0, newItem(Material.HOST_ARMOR_TRIM_SMITHING_TEMPLATE, ChatColor.AQUA + "Recharging…"));
 
-        // Burst effect
         new BukkitRunnable() {
-            int count = 0;
-            final int reps = 25;
-            final double step = 0.2;
-            final double maxLen = 10;
-            final double damageRad = 0.7;
-            final int damage = 2;
+            int count = 0, hits = 0;
             boolean canGiveVoid = false;
-            int hits = 0;
 
             @Override
             public void run() {
-                if (count++ >= reps) {
+                if (count++ >= 25) {
                     cancel();
                     p.getWorld().playSound(p.getLocation(), Sound.BLOCK_LANTERN_BREAK, 2f, 0.5f);
                     return;
                 }
+
                 p.getWorld().playSound(p.getLocation(), Sound.ENTITY_BLAZE_SHOOT, 1f, 1.5f);
                 Location start = p.getEyeLocation().subtract(0, 0.5, 0);
-                Vector dir = start.getDirection();
-
-
+                Vector dir    = start.getDirection();
+                double step   = 0.2, maxLen = 10, damageRad = 0.7;
+                int damage    = 2;
                 boolean hitPlayer = false;
 
-
+                // trace the flame
                 for (int i = 0; i * step <= maxLen; i++) {
                     Location loc = start.clone().add(dir.clone().multiply(i * step));
-                    RayTraceResult hit = p.getWorld().rayTraceBlocks(start, dir, i * step);
-                    if (hit != null && hit.getHitBlock() != null) break;
-                    p.getWorld().spawnParticle(Particle.FLAME, loc.subtract(0, 0, 0), 0);
+                    if (p.getWorld().rayTraceBlocks(start, dir, i * step) != null) break;
+                    p.getWorld().spawnParticle(Particle.FLAME, loc, 0);
+
+                    // damage nearby
                     for (Entity ent : p.getWorld().getNearbyEntities(loc, damageRad, damageRad, damageRad)) {
-                        if (ent instanceof LivingEntity && !ent.equals(p) && p.hasLineOfSight(ent)) {
-                            ((LivingEntity) ent).damage(damage);
+                        if (ent instanceof LivingEntity le && !le.equals(p) && p.hasLineOfSight(le)) {
+                            // tag damage by player
+                            double oldHp = le.getHealth();
+                            le.damage(damage, p);            // <-- use the two‐arg variant
                             hitPlayer = true;
-                            if (hits >= 3) {
+
+                            // credit kill if they died
+                            if (le.isDead()) {
+                                main.getStats().recordKill(p);
+                            }
+
+                            if (++hits >= 3) {
                                 hits = 0;
                                 canGiveVoid = true;
                             }
-                            ent.setFireTicks(40);
+                            le.setFireTicks(40);
                         }
                     }
                 }
 
-                if (hitPlayer) {
-                    hits++;
-                }
-
-                if (canGiveVoid) {
+                if (hitPlayer && canGiveVoid) {
                     addVoidFragments(1);
                     canGiveVoid = false;
                 }
             }
         }.runTaskTimer(main, 0, 2);
     }
+
 
     // Frost dagger: simple projectile, 5s cooldown
     public void useFrostDagger() {
@@ -236,23 +235,32 @@ public class Artificer extends Kit {
         }
     }
 
+    // ─── Void‐bomb block cleanup ──────────────────────────────────────────────────
     public void voidDeleteBlocks(Location loc) {
         loc.getWorld().playSound(loc, Sound.ENTITY_DRAGON_FIREBALL_EXPLODE, 10f, 0.5f);
 
-        for(Location l : sphere(loc, voidBombRadius + 1))
-            if (l.getBlock().getType() != Material.AIR) { // replace non air border with black concrete
-                if (!main.restricted.contains(l.getBlock().getType())) { // if restricted, dont at all
-                    l.getBlock().setType(Material.BLACK_CONCRETE);
-                }
+        // carve out the sphere…
+        for (Location l : sphere(loc, voidBombRadius + 1)) {
+            if (!main.restricted.contains(l.getBlock().getType()))
+                l.getBlock().setType(Material.BLACK_CONCRETE);
+        }
+        for (Location l : sphere(loc, voidBombRadius)) {
+            if (!main.restricted.contains(l.getBlock().getType()))
+                l.getBlock().setType(Material.AIR);
+        }
+
+        // kill any players inside
+        for (Entity ent : Objects.requireNonNull(loc.getWorld())
+                .getNearbyEntities(loc, voidBombRadius, voidBombRadius, voidBombRadius)) {
+            if (ent instanceof Player victim && victim.getGameMode() != GameMode.SPECTATOR) {
+                // 1) credit the kill
+                main.getStats().recordKill(p);
+                // 2) actually kill them
+                victim.setHealth(0.0);
             }
-        for(Location l : sphere(loc, voidBombRadius))
-            if (!main.restricted.contains(l.getBlock().getType())) {
-                l.getBlock().setType(Material.AIR );
-            }
-        for (Entity ent : Objects.requireNonNull(loc.getWorld()).getNearbyEntities(loc, voidBombRadius, voidBombRadius, voidBombRadius)) {
-            if (ent instanceof Player) if (((Player) ent).getGameMode() != GameMode.SPECTATOR) ((Player) ent).setHealth(0.0);
         }
     }
+
 
     // Updraft: 12s cooldown, single ability
     public void useUpdraft() {

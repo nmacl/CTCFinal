@@ -96,7 +96,6 @@ public class Grandma extends Kit {
 
     public void setCookieRegen(int time) {
         RegenItem c = regenItem("Cookie", healCookies, 14, 3, 1);
-
     }
 
     public void giveCane(int stacks) {
@@ -123,8 +122,8 @@ public class Grandma extends Kit {
         BukkitTask timeoutTask = new BukkitRunnable() {
             int time = 8;
             public void run() {
-                p.setLevel(time);
                 time--;
+                p.setLevel(time);
                 float pitch = 0.9f - ((float) time * 0.1f);
                 p.getWorld().playSound(p.getLocation(), Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 0.1f, pitch);
                 if (time <= 0) {
@@ -238,7 +237,7 @@ public class Grandma extends Kit {
         }
 
         public void blowUp() {
-            main.fakeExplode(p,p.getLocation().add(0.0,1.0,0.0),24,4,true,true,true);
+            main.fakeExplode(p,p.getLocation().add(0.0,1.0,0.0),14,4,true,true,true);
 
             scooter.remove();
             cleanScooterHotbar();

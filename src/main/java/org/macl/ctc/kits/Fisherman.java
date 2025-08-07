@@ -31,7 +31,7 @@ public class Fisherman extends Kit {
         e.addItem(newItem(Material.COD, ChatColor.LIGHT_PURPLE + "Cod Sniper"));
         giveWool();
         giveWool();
-        setHearts(16);
+        setHearts(18);
     }
 
     public void codSniper() {
@@ -41,11 +41,11 @@ public class Fisherman extends Kit {
         final Set<UUID> hitThisShot = new HashSet<>();
         Entity cod = p.getWorld().spawnEntity(p.getEyeLocation(), EntityType.COD);
 
-        // Pre‑compute colour once so it doesn’t flip every tick
+        // Pre-compute colour once so it doesn’t flip every tick
         Particle.DustOptions dust =
                 main.game.redHas(p)
-                        ? new Particle.DustOptions(Color.fromRGB(255, 0, 0), 3.0F)   // red team
-                        : new Particle.DustOptions(Color.fromRGB(0, 0, 255), 3.0F);  // blue team
+                        ? new Particle.DustOptions(Color.fromRGB(255, 0, 0), 3.0F)
+                        : new Particle.DustOptions(Color.fromRGB(0, 0, 255), 3.0F);
 
         Vector velocity = p.getLocation().getDirection().multiply(2.5);
 
@@ -53,40 +53,51 @@ public class Fisherman extends Kit {
             int ticks = 0;
             @Override
             public void run() {
-                /* Lifetime safeguard */
-                if (!cod.isValid() || ++ticks > 100) { cod.remove(); cancel(); return; }
+                // Lifetime safeguard
+                if (!cod.isValid() || ++ticks > 100) {
+                    cod.remove();
+                    cancel();
+                    return;
+                }
 
-                /* Push the fish forward */
+                // Push the fish forward
                 cod.setVelocity(velocity);
 
-                /* ✨ trail particles */
+                // ✨ trail particles
                 cod.getWorld().spawnParticle(
                         Particle.REDSTONE,
                         cod.getLocation(),
-                        10,                 // count
-                        0.35, 0.2, 0.35,    // xyz spread
-                        0.2,                // extra (speed)
-                        dust);
+                        10,
+                        0.35, 0.2, 0.35,
+                        0.2,
+                        dust
+                );
 
-                /* Collision check */
+                // Collision check
                 for (Entity e : cod.getNearbyEntities(0.7, 0.7, 0.7)) {
                     if (e instanceof Player target
-                            && target != p
+                            && !target.getUniqueId().equals(p.getUniqueId())
                             && hitThisShot.add(target.getUniqueId())) {
 
-                        double airborneDamage = 0;
+                        double airborneDamage = target.isOnGround() ? 0 : 2;
+                        // first drop them near-zero but never kill
+                        target.setHealth(Math.max(0.5, target.getHealth() - (6 + airborneDamage)));
+                        // then deal the killing blow
+                        target.damage(1, p);
 
-                        if (!target.isOnGround()) {
-                         airborneDamage = 2;
+                        // **record the kill if they died**
+                        if (target.isDead()) {
+                            main.getStats().recordKill(p);
                         }
 
-                        target.setHealth(Math.max(0.5, target.getHealth() - (6 + airborneDamage)));
-                        target.damage(1, p);
                         p.getWorld().playSound(target.getLocation(),
                                 Sound.BLOCK_BELL_USE, 1f, 1f);
-                        p.getWorld().playSound(p.getLocation(), Sound.BLOCK_BELL_USE, 1f, 1f);
+                        p.getWorld().playSound(p.getLocation(),
+                                Sound.BLOCK_BELL_USE, 1f, 1f);
 
-                        cod.remove(); cancel(); return;
+                        cod.remove();
+                        cancel();
+                        return;
                     }
                 }
             }
@@ -94,66 +105,84 @@ public class Fisherman extends Kit {
     }
 
 
+
     public void pufferfishBomb() {
-        if(isOnCooldown("pufferfish"))
-            return;
+        if (isOnCooldown("pufferfish")) return;
         setCooldown("pufferfish", 10, Sound.ENTITY_EXPERIENCE_ORB_PICKUP);
 
-        // Create pufferfish item to throw
-        ItemStack pufferfishItem = new ItemStack(Material.PUFFERFISH);
-        // Spawn further away from player to avoid immediate collision
-        Location throwLoc = p.getEyeLocation().add(p.getLocation().getDirection().multiply(1.5));
-
-        Item thrownEggItem = p.getWorld().dropItem(throwLoc, pufferfishItem);
-        // Throw it like a grenade with proper arc
-        Vector throwVelocity = p.getLocation().getDirection().multiply(1.5);
-        throwVelocity.setY(throwVelocity.getY() + 0.3); // Add upward arc
-        thrownEggItem.setVelocity(throwVelocity);
-
-        // Play throwing sound
+        // 1️⃣  throw the “grenade” item
+        Location throwLoc = p.getEyeLocation()
+                .add(p.getLocation().getDirection().multiply(1.5));
+        Item thrown = p.getWorld().dropItem(throwLoc,
+                new ItemStack(Material.PUFFERFISH));
+        Vector vel = p.getLocation().getDirection().multiply(1.5);
+        vel.setY(vel.getY() + 0.3);
+        thrown.setVelocity(vel);
+        thrown.setPickupDelay(Integer.MAX_VALUE);           // players can’t grab it
         p.playSound(p.getLocation(), Sound.ENTITY_SNOWBALL_THROW, 1f, 0.8f);
 
+        // 2️⃣  wait until the item slows or hits the ground, then detonate
         BukkitTask t = new BukkitRunnable() {
-            int timer = 0; // Local timer variable
+            int timer = 0;
             @Override
             public void run() {
                 timer++;
+                if (!thrown.isValid()) { cancel(); return; }
 
-                // Check if item is still valid
-                if (!thrownEggItem.isValid()) {
-                    this.cancel();
-                    return;
-                }
+                boolean lowVel  = Math.abs(thrown.getVelocity().getY()) < 0.1;
+                boolean tooLong = timer >= 10;
+                if (timer >= 2 && (lowVel || tooLong || thrown.isOnGround())) {
 
-                double y = thrownEggItem.getVelocity().getY();
+                    // --- DETONATION ---
+                    Location bombLoc = thrown.getLocation();
 
-                // Add minimum timer to prevent immediate explosion on player (at least 1 second)
-                // Improved landing detection - check if on ground or timer exceeded
-                if (timer >= 2 && (Math.abs(y) < 0.1 || timer >= 10 || thrownEggItem.isOnGround())) {
-                    Location bombLoc = thrownEggItem.getLocation();
+                    // 3️⃣  spawn a tight “cloud” of fake pufferfish
+                    double clusterRadius = 0.6;           // keeps fish close together
+                    for (int i = 0; i < 10; i++) {
+                        PufferFish fish = (PufferFish) p.getWorld()
+                                .spawnEntity(bombLoc, EntityType.PUFFERFISH);
 
-                    // Spawn pufferfish
-                    for(int i = 0; i < 10; i++) {
-                        Entity pufferfish = p.getWorld().spawnEntity(bombLoc, EntityType.PUFFERFISH);
+                        // keep them alive & stationary for ~2 s
+                        fish.setPuffState(2);      // 0=deflated, 1=half, 2=full
+                        fish.setInvulnerable(true);
+                        fish.setRemainingAir(999999);
+                        fish.setAware(false);             // disable AI flopping
+                        fish.setVelocity(new Vector(
+                                (Math.random() - 0.5) * 0.2,
+                                0.05 + Math.random() * 0.05,
+                                (Math.random() - 0.5) * 0.2));
 
-                        // Give pufferfish random velocity for spread
-                        Vector randomVel = new Vector(
-                                (Math.random() - 0.1) * 2,
-                                Math.random() * 0.1,
-                                (Math.random() - 0.1) * 2
-                        );
-                        pufferfish.setVelocity(randomVel);
+                        // schedule cleanup so they don’t hang around forever
+                        new BukkitRunnable() {
+                            @Override
+                            public void run() { fish.remove(); }
+                        }.runTaskLater(main, 140L);         // 2 s later
                     }
 
-                    // Add explosion effect
-                    p.getWorld().playSound(bombLoc, Sound.ENTITY_GENERIC_EXPLODE, 1f, 1f);
-                    p.getWorld().spawnParticle(Particle.EXPLOSION_LARGE, bombLoc, 3);
+                    // 4️⃣  SFX + actual damage
+                    p.getWorld().playSound(bombLoc,
+                            Sound.ENTITY_GENERIC_EXPLODE, 1f, 1f);
+                    p.getWorld().spawnParticle(Particle.EXPLOSION_LARGE,
+                            bombLoc, 3);
 
-                    thrownEggItem.remove();
-                    this.cancel();
+                    // ~5-block lethal circle (6 dmg @ center → 0 @ 5 blocks)
+                    main.fakeExplode(
+                            p, bombLoc,
+                            6,        // maxDamage
+                            5,        // maxDistance (radius)
+                            false,    // no fire
+                            false,    // no block break
+                            false     // no ally damage
+                    );
+
+                    thrown.remove();
+                    cancel();
                 }
             }
-        }.runTaskTimer(main, 0L, 5L);
+        }.runTaskTimer(main, 0L, 2L);     // check every 2 ticks
+
         registerTask(t);
     }
+
+
 }

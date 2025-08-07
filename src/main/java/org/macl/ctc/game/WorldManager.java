@@ -191,8 +191,6 @@ public class WorldManager {
 
         //create command to teleport there
 
-
-
     }
 
     public Location getRed() {
@@ -328,7 +326,7 @@ public class WorldManager {
         main.send(p, p.getLocation().toString());
         main.send(p, "Red spawn set", ChatColor.RED);
 
-        main.getConfig().set(s + ".red.world", loc.getWorld().getName());
+        main.getConfig().set(s + ".red.world", "map");
         main.getConfig().set(s + ".red.x", loc.getX());
         main.getConfig().set(s + ".red.y", loc.getY());
         main.getConfig().set(s + ".red.z", loc.getZ());
@@ -345,7 +343,7 @@ public class WorldManager {
 
         main.send(p, "Blue spawn set", ChatColor.BLUE);
 
-        main.getConfig().set(s + ".blue.world", loc.getWorld().getName());
+        main.getConfig().set(s + ".blue.world", "map");
         main.getConfig().set(s + ".blue.x", loc.getX());
         main.getConfig().set(s + ".blue.y", loc.getY());
         main.getConfig().set(s + ".blue.z", loc.getZ());

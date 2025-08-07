@@ -39,7 +39,7 @@ public class LeaderboardManager {
         List<Player> online = new ArrayList<>(Bukkit.getOnlinePlayers());
 
         // 1) Compute top values and who holds them
-        int bestKills  = online.stream().mapToInt(p -> sm.get(p.getUniqueId()).kills()).max().orElse(0);
+        int bestKills  = online.stream().mapToInt(p -> sm.get(p.getUniqueId()).kills()).max().orElse(5);
         int bestDeaths = online.stream().mapToInt(p -> sm.get(p.getUniqueId()).deaths()).max().orElse(0);
         int bestCaps   = online.stream().mapToInt(p -> sm.get(p.getUniqueId()).captures()).max().orElse(0);
         int bestCracks = online.stream().mapToInt(p -> sm.get(p.getUniqueId()).coreCracks()).max().orElse(0);

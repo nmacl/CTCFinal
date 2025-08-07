@@ -57,7 +57,7 @@ public class Grandpa extends Kit {
                     .spawn(p.getEyeLocation().subtract(0, 0.5, 0),
                             SmallFireball.class);
             bullet.setShooter(p);
-            bullet.setVelocity(dir.multiply(1.8));
+            bullet.setVelocity(dir.multiply(1.6));
 
             // knockback
             double airLaunchModifier = -0.2;
@@ -67,7 +67,7 @@ public class Grandpa extends Kit {
 
             Vector r = dir.multiply((airLaunchModifier));
             r.setY(r.getY() * 1.2);
-            p.setVelocity(r);
+            p.setVelocity(p.getVelocity().add(r));
 
             fallImmune = true;
 
