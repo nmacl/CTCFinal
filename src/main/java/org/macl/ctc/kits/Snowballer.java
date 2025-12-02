@@ -28,7 +28,7 @@ public class Snowballer extends Kit {
         e.setBoots(newItemEnchanted(Material.DIAMOND_BOOTS, "Feather Boots", Enchantment.PROTECTION_FALL, 7));
         giveWool();
         giveWool();
-        setHearts(16);
+        setHearts(18);
     }
     public void shootSnowball() {
         p.launchProjectile(Snowball.class);

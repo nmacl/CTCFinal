@@ -112,7 +112,11 @@ public final class Main extends JavaPlugin implements CommandExecutor, Listener 
         new Blocks(this);
         playerListener = new Players(this);
 
-        worldManager.loadWorld("map", "sandstone");
+        // Load map from config (set by Docker or manually in config.yml)
+        String currentMap = getConfig().getString("current-map", "sandstone");
+        map = currentMap;
+        getLogger().info("Loading map: " + currentMap);
+        worldManager.loadWorld("map", currentMap);
 
         for (Listener i : listens)
             getServer().getPluginManager().registerEvents(i, this);
@@ -127,6 +131,14 @@ public final class Main extends JavaPlugin implements CommandExecutor, Listener 
                 leaderboard.init();
             }
         }.runTaskTimer(this, 0, 20 * 60);
+
+        // auto start game
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                game.start();
+            }
+        }.runTaskLater(this, 20L);
 
     }
 

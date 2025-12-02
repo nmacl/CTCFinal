@@ -41,13 +41,8 @@ public class Players extends DefaultListener {
     public void playerJoinReal(PlayerJoinEvent event) {
         Player p = event.getPlayer();
         game.resetPlayer(p, false);
-        p.sendTitle(
-                ChatColor.BOLD + "Go into the Nether portal",       // title
-                "to start the game",               // subtitle
-                10,    // fadeIn ticks
-                70,    // stay ticks
-                20     // fadeOut ticks
-        );
+        if(main.game.started)
+            game.addTeam(p);
 
         // then a chat message with the Discord link
         p.sendMessage(ChatColor.AQUA + "Join our Discord: https://discord.gg/Qeme8MUXBY");
@@ -307,8 +302,9 @@ public class Players extends DefaultListener {
     @EventHandler
     public void portal(PlayerMoveEvent event) {
         Player p = event.getPlayer();
-        if(!main.game.started && p.getWorld().getName() == "map")
-            p.teleport(Bukkit.getWorld("world").getSpawnLocation());
+        // Removed teleport - let players hang out after game ends
+        // if(!main.game.started && p.getWorld().getName() == "map")
+        //     p.teleport(Bukkit.getWorld("world").getSpawnLocation());
         if(event.getTo().getBlock().getType() == Material.NETHER_PORTAL)
             game.stack(p);
         PotionEffect slowness = p.getPotionEffect(PotionEffectType.SLOW);

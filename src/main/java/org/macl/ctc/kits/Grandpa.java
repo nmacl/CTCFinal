@@ -52,7 +52,7 @@ public class Grandpa extends Kit {
                     Sound.ENTITY_FIREWORK_ROCKET_BLAST,
                     1f, 0.1f);
 
-            Vector dir = p.getLocation().getDirection();
+            Vector dir = p.getLocation().getDirection().multiply(0.4);
             SmallFireball bullet = p.getWorld()
                     .spawn(p.getEyeLocation().subtract(0, 0.5, 0),
                             SmallFireball.class);

@@ -141,10 +141,10 @@ public class GameManager {
 
         // 1) Define your tips as (title, subtitle) pairs
         List<String[]> tips = Arrays.asList(
-                new String[]{ "",                              ChatColor.AQUA   + "Press right-click to use an ability" },
-                new String[]{ "",                              ChatColor.GREEN  + "Place your colored wool in the netherite center" },
-                new String[]{ "",                              ChatColor.RED  +   "Capturing the center gives you the diamond pickaxe" },
-                new String[]{ ChatColor.BOLD + "Have fun!",    ChatColor.GOLD   + "Use the diamond pickaxe to destroy the enemy team's obsidian" }
+                new String[]{ "",                              ChatColor.AQUA   + "Right-click to use an ability" },
+                new String[]{ "",                              ChatColor.GREEN  + "Place wool in the netherite center" },
+                new String[]{ "",                              ChatColor.RED  +   "Capturing the center gives the diamond pickaxe" },
+                new String[]{ ChatColor.BOLD + "Have fun!",    ChatColor.GOLD   + "Use the pick to destroy the enemy team's obsidian" }
         );
 
         // 2) Timing constants (in ticks)
@@ -180,6 +180,7 @@ public class GameManager {
     }
 
     private void setup(Player p) {
+        p.setScoreboard(gameScoreboard);
         teleportSpawn(p);
         AttributeInstance attribute = p.getAttribute(Attribute.GENERIC_MAX_HEALTH);
         attribute.setBaseValue(20.0);
@@ -288,30 +289,24 @@ public class GameManager {
 
         broadcastLiveGameAwards();
 
-
+        // Notify players about server restart
         new BukkitRunnable() {
             @Override public void run() {
-
-                // 1) wipe the map FIRST
-                world.clean(stopper);      // or world.cleanAll() if it affects blocks only
-
-                // 2) now reset all players once
-                for (Player pl : Bukkit.getOnlinePlayers()) {
-                    if (kit.kits.containsKey(pl.getUniqueId())) {
-                        kit.kits.get(pl.getUniqueId()).cancelAllCooldowns();
-                        kit.kits.get(pl.getUniqueId()).cancelAllRegen();
-                        kit.kits.get(pl.getUniqueId()).cancelAllTasks();
-                    }
-                }
-                clean();                   // <- teleports everyone to “world” exactly once
-
-                redCoreHealth  = 3;
-                blueCoreHealth = 3;
-                kit.kits.clear();
-                center = 0;
-                gameScoreboard = null;
+                main.broadcast(ChatColor.GOLD + "=========================", ChatColor.GOLD);
+                main.broadcast("Server restarting for next game...", ChatColor.YELLOW);
+                main.broadcast(ChatColor.GOLD + "=========================", ChatColor.GOLD);
             }
         }.runTaskLater(main, 60L);
+
+        // Shutdown cleanly; container restart policy will bring it back fresh
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                main.getLogger().info("Game ended - exiting JVM for container restart.");
+                // System.exit ensures Docker sees the process end and restarts the container
+                Bukkit.shutdown();
+            }
+        }.runTaskLater(main, 100L); // 5 seconds after game end
     }
 
 

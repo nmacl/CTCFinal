@@ -241,7 +241,7 @@ public class Artificer extends Kit {
 
         // carve out the sphere…
         for (Location l : sphere(loc, voidBombRadius + 1)) {
-            if (!main.restricted.contains(l.getBlock().getType()))
+            if (!main.restricted.contains(l.getBlock().getType()) && l.getBlock().getType() != Material.AIR)
                 l.getBlock().setType(Material.BLACK_CONCRETE);
         }
         for (Location l : sphere(loc, voidBombRadius)) {

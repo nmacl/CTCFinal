@@ -111,8 +111,7 @@ public class Fisherman extends Kit {
         setCooldown("pufferfish", 10, Sound.ENTITY_EXPERIENCE_ORB_PICKUP);
 
         // 1️⃣  throw the “grenade” item
-        Location throwLoc = p.getEyeLocation()
-                .add(p.getLocation().getDirection().multiply(1.5));
+        Location throwLoc = p.getEyeLocation().subtract(0, 0.5, 0).add(p.getLocation().getDirection().multiply(1.5));
         Item thrown = p.getWorld().dropItem(throwLoc,
                 new ItemStack(Material.PUFFERFISH));
         Vector vel = p.getLocation().getDirection().multiply(1.5);
@@ -129,16 +128,16 @@ public class Fisherman extends Kit {
                 timer++;
                 if (!thrown.isValid()) { cancel(); return; }
 
-                boolean lowVel  = Math.abs(thrown.getVelocity().getY()) < 0.1;
+                boolean lowVel  = thrown.getVelocity().length() < 0.2;
                 boolean tooLong = timer >= 10;
-                if (timer >= 2 && (lowVel || tooLong || thrown.isOnGround())) {
+                if (timer >= 1 && (lowVel || tooLong || thrown.isOnGround())) {
 
                     // --- DETONATION ---
                     Location bombLoc = thrown.getLocation();
 
                     // 3️⃣  spawn a tight “cloud” of fake pufferfish
                     double clusterRadius = 0.6;           // keeps fish close together
-                    for (int i = 0; i < 10; i++) {
+                    for (int i = 0; i < 13; i++) {
                         PufferFish fish = (PufferFish) p.getWorld()
                                 .spawnEntity(bombLoc, EntityType.PUFFERFISH);
 

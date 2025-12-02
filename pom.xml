@@ -109,6 +109,32 @@
                     </execution>
                 </executions>
             </plugin>
+
+            <!-- Auto-copy remapped JAR to SERVER23 plugins folder -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-antrun-plugin</artifactId>
+                <version>3.1.0</version>
+                <executions>
+                    <execution>
+                        <id>copy-to-server</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>run</goal>
+                        </goals>
+                        <configuration>
+                            <target>
+                                <echo message="Copying remapped JAR to SERVER23 plugins folder..."/>
+                                <copy file="${project.build.directory}/${project.artifactId}-${project.version}-remapped.jar"
+                                      tofile="C:/Users/nmacl/OneDrive/Desktop/SERVER23/plugins/${project.artifactId}-${project.version}-remapped.jar"
+                                      overwrite="true"
+                                      verbose="true"/>
+                                <echo message="Successfully copied to SERVER23/plugins/"/>
+                            </target>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
         </plugins>
     </build>
 </project>
