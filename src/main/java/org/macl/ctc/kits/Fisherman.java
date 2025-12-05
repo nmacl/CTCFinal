@@ -81,14 +81,8 @@ public class Fisherman extends Kit {
 
                         double airborneDamage = target.isOnGround() ? 0 : 2;
                         // first drop them near-zero but never kill
-                        target.setHealth(Math.max(0.5, target.getHealth() - (6 + airborneDamage)));
-                        // then deal the killing blow
-                        target.damage(1, p);
+                        main.combatTracker.setHealth(target, target.getHealth() - (6 + airborneDamage), p, "cod sniper");
 
-                        // **record the kill if they died**
-                        if (target.isDead()) {
-                            main.getStats().recordKill(p);
-                        }
 
                         p.getWorld().playSound(target.getLocation(),
                                 Sound.BLOCK_BELL_USE, 1f, 1f);
@@ -171,7 +165,8 @@ public class Fisherman extends Kit {
                             5,        // maxDistance (radius)
                             false,    // no fire
                             false,    // no block break
-                            false     // no ally damage
+                            false,    //no ally damage
+                            "pufferfish"
                     );
 
                     thrown.remove();

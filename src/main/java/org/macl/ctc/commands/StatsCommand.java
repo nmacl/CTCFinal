@@ -49,6 +49,8 @@ public class StatsCommand implements CommandExecutor {
         p.sendMessage(formatLine("Captures",     ps.captures()));
         p.sendMessage(formatLine("Core Cracks", ps.coreCracks()));
         p.sendMessage(formatLine("Games Played", ps.gamesPlayed()));
+        p.sendMessage(formatLine("Damage Dealt", ps.damageDealt()));
+        p.sendMessage(formatLine("Damage Taken", ps.damageTaken()));
 
         // Footer
         p.sendMessage(ChatColor.GOLD + "==========================");

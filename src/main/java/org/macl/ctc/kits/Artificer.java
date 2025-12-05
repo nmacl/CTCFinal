@@ -86,19 +86,16 @@ public class Artificer extends Kit {
                     for (Entity ent : p.getWorld().getNearbyEntities(loc, damageRad, damageRad, damageRad)) {
                         if (ent instanceof LivingEntity le && !le.equals(p) && p.hasLineOfSight(le)) {
                             // tag damage by player
-                            double oldHp = le.getHealth();
-                            le.damage(damage, p);            // <-- use the two‐arg variant
-                            hitPlayer = true;
+                            double newHealth = le.getHealth() - 0.01;
+                            main.combatTracker.setHealth((Player) le, newHealth, p, "flamethrower");
 
-                            // credit kill if they died
-                            if (le.isDead()) {
-                                main.getStats().recordKill(p);
-                            }
+                            hitPlayer = true;
 
                             if (++hits >= 3) {
                                 hits = 0;
                                 canGiveVoid = true;
                             }
+
                             le.setFireTicks(40);
                         }
                     }
@@ -253,10 +250,7 @@ public class Artificer extends Kit {
         for (Entity ent : Objects.requireNonNull(loc.getWorld())
                 .getNearbyEntities(loc, voidBombRadius, voidBombRadius, voidBombRadius)) {
             if (ent instanceof Player victim && victim.getGameMode() != GameMode.SPECTATOR) {
-                // 1) credit the kill
-                main.getStats().recordKill(p);
-                // 2) actually kill them
-                victim.setHealth(0.0);
+                main.combatTracker.setHealth(victim, 0, p, "void bomb");
             }
         }
     }

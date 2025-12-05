@@ -264,7 +264,7 @@ public class Interact extends DefaultListener {
                     public void run() {
                         event.getClickedBlock().getLocation().getWorld().getBlockAt(event.getClickedBlock().getLocation()).setType(Material.AIR);
                         p.getLocation().getWorld().createExplosion(event.getClickedBlock().getLocation(), 5f, true);
-                        main.fakeExplode(p, l, 24, 8, true, true,true);
+                        main.fakeExplode(p, l, 24, 8, true, true,true, "mine");
                     }
                 }.runTaskLater(main, 15*2L);
             }

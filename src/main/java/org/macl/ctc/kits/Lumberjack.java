@@ -269,7 +269,7 @@ public class Lumberjack extends Kit {
 
     public void logExplode(Location loc) {
         loc.getWorld().playSound(loc, Sound.ENTITY_ZOMBIE_BREAK_WOODEN_DOOR, 2.0f, 0.8f);
-        main.fakeExplode(p,loc,12,3,false,false,false);
+        main.fakeExplode(p,loc,12,3,false,false,false, "log");
     }
 
     public void sawBlocks() {
@@ -311,17 +311,9 @@ public class Lumberjack extends Kit {
                 double dmg = 0.5;
                 double newHp = victim.getHealth() - dmg;
 
-                if (newHp <= 0.0) {
-                    // 1) record the kill
-                    main.getStats().recordKill(p);
-                    // 2) actually kill them
-                    victim.setHealth(0);
-                } else {
-                    // just apply damage
-                    victim.setHealth(newHp);
-                }
+                main.getCombatTracker().setHealth(victim, newHp, p, "chainsaw");
 
-                // allow immediate follow-up hits
+
                 victim.setNoDamageTicks(0);
             }
         }

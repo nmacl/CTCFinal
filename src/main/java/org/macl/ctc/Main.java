@@ -1,5 +1,9 @@
 package org.macl.ctc;
 
+import com.maximde.hologramlib.HologramLib;
+import com.maximde.hologramlib.hologram.HologramManager;
+import com.maximde.hologramlib.hologram.TextHologram;
+import com.maximde.hologramlib.hologram.custom.LeaderboardHologram;
 import net.md_5.bungee.api.chat.ClickEvent;
 import net.md_5.bungee.api.chat.ComponentBuilder;
 import net.md_5.bungee.api.chat.HoverEvent;
@@ -21,6 +25,7 @@ import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.util.RayTraceResult;
 import org.bukkit.util.Vector;
+import org.macl.ctc.combat.CombatTracker;
 import org.macl.ctc.events.Blocks;
 import org.macl.ctc.events.Interact;
 import org.macl.ctc.events.Players;
@@ -30,10 +35,8 @@ import org.macl.ctc.kits.Kit;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
+
 import net.md_5.bungee.api.chat.TextComponent;
 
 public final class Main extends JavaPlugin implements CommandExecutor, Listener {
@@ -43,9 +46,11 @@ public final class Main extends JavaPlugin implements CommandExecutor, Listener 
 
     public GameManager game;
     public WorldManager worldManager;
+    public CombatTracker combatTracker;
     public KitManager kit;
     public StatsManager stats;
-    public LeaderboardManager leaderboard;
+    private HologramManager hologramManager;
+    private File statsFile;  // Store stats file path for Docker volume support
     public String prefix = ChatColor.GOLD + "[CTC] " + ChatColor.GRAY;
 
     public void send(Player p, String text, ChatColor color) {
@@ -77,21 +82,46 @@ public final class Main extends JavaPlugin implements CommandExecutor, Listener 
         this.getCommand("ctc").setExecutor(this);
         getLogger().info("Started!");
 
+        HologramLib.getManager().ifPresentOrElse(
+                manager -> hologramManager = manager,
+                () -> getLogger().severe("Failed to initialize HologramLib manager.")
+        );
+
         if (!getDataFolder().exists()) {
             getDataFolder().mkdirs();
         }
 
-        // 2) create stats.yml if it doesn't exist
-        File statsFile = new File(getDataFolder(), "stats.yml");
+        // 2) Read stats file path from environment variable (for Docker volume support)
+        String statsPath = System.getenv("CTC_STATS_FILE");
+
+        if (statsPath != null && !statsPath.isEmpty()) {
+            statsFile = new File(statsPath);
+            getLogger().info("Using stats file from environment: " + statsPath);
+
+            // Ensure parent directories exist
+            File parentDir = statsFile.getParentFile();
+            if (parentDir != null && !parentDir.exists()) {
+                if (parentDir.mkdirs()) {
+                    getLogger().info("Created stats directory: " + parentDir.getAbsolutePath());
+                }
+            }
+        } else {
+            // Fallback to plugin data folder
+            statsFile = new File(getDataFolder(), "stats.yml");
+            getLogger().info("Using default stats file: " + statsFile.getAbsolutePath());
+        }
+
+        // 3) Create stats.yml if it doesn't exist
         if (!statsFile.exists()) {
             try (PrintWriter out = new PrintWriter(statsFile)) {
                 out.println("stats: {}");                // minimal valid YAML
+                getLogger().info("Created new stats file");
             } catch (IOException e) {
                 getLogger().severe("Could not create stats.yml: " + e.getMessage());
             }
         }
 
-        // 3) now safely load it
+        // 4) Now safely load it
         FileConfiguration statsCfg = YamlConfiguration.loadConfiguration(statsFile);
         this.stats = new StatsManager();
         stats.loadAll(statsCfg);
@@ -117,6 +147,7 @@ public final class Main extends JavaPlugin implements CommandExecutor, Listener 
         map = currentMap;
         getLogger().info("Loading map: " + currentMap);
         worldManager.loadWorld("map", currentMap);
+        combatTracker = new CombatTracker(this);  // initialize after other managers if needed
 
         for (Listener i : listens)
             getServer().getPluginManager().registerEvents(i, this);
@@ -124,13 +155,6 @@ public final class Main extends JavaPlugin implements CommandExecutor, Listener 
         registerEvents();
         getCommand("stats").setExecutor(new org.macl.ctc.commands.StatsCommand(this));
 
-        leaderboard = new LeaderboardManager(this);
-        new BukkitRunnable() {
-            @Override
-            public void run() {
-                leaderboard.init();
-            }
-        }.runTaskTimer(this, 0, 20 * 60);
 
         // auto start game
         new BukkitRunnable() {
@@ -148,12 +172,43 @@ public final class Main extends JavaPlugin implements CommandExecutor, Listener 
 
     @Override
     public void onDisable() {
-        if (stats != null) {
-            File statsFile = new File(getDataFolder(), "stats.yml");
+
+        if (stats != null && statsFile != null) {
+            // Load current file state
             FileConfiguration statsCfg = YamlConfiguration.loadConfiguration(statsFile);
-            stats.saveAll(statsCfg);
+
+            // Create a temporary StatsManager to load file stats
+            StatsManager fileStats = new StatsManager();
+            fileStats.loadAll(statsCfg);
+
+            // Merge: for each player in our in-memory stats, ADD to file stats
+            // This way we don't lose stats from other servers
+            for (var entry : stats.entrySet()) {
+                UUID playerId = entry.getKey();
+                StatsManager.PlayerStats ourStats = entry.getValue();
+                StatsManager.PlayerStats existingStats = fileStats.get(playerId);
+
+                // Merge by adding our stats to existing stats
+                StatsManager.PlayerStats merged = new StatsManager.PlayerStats(
+                    existingStats.kills() + ourStats.kills(),
+                    existingStats.deaths() + ourStats.deaths(),
+                    existingStats.wins() + ourStats.wins(),
+                    existingStats.captures() + ourStats.captures(),
+                    existingStats.coreCracks() + ourStats.coreCracks(),
+                    existingStats.gamesPlayed() + ourStats.gamesPlayed(),
+                    existingStats.damageDealt() + ourStats.damageDealt(),
+                    existingStats.damageTaken() + ourStats.damageTaken()
+                );
+
+                // Update file stats with merged values
+                fileStats.set(playerId, merged);
+            }
+
+            // Save merged stats
+            fileStats.saveAll(statsCfg);
             try {
                 statsCfg.save(statsFile);
+                getLogger().info("Saved merged stats to: " + statsFile.getAbsolutePath());
             } catch (IOException e) {
                 getLogger().severe("Failed to save stats.yml: " + e.getMessage());
             }
@@ -161,18 +216,53 @@ public final class Main extends JavaPlugin implements CommandExecutor, Listener 
         getLogger().info("Ended");
     }
 
-    private String formatLine(String label, int value) {
-        return ChatColor.YELLOW
-                + String.format("%-14s", label + ":")
-                + ChatColor.WHITE
-                + value;
+    public CombatTracker getCombatTracker() {
+        return combatTracker;
     }
 
-    private String formatLine(String label, String value) {
-        return ChatColor.YELLOW
-                + String.format("%-14s", label + ":")
-                + ChatColor.WHITE
-                + value;
+    public void spawnHeadDebugBoard(Player p) {
+        var hm = this.hologramManager;
+
+        hm.getHologram("debug_heads").ifPresent(hm::remove);
+
+        Location loc = p.getLocation().add(0, 2, 0);
+
+        LeaderboardHologram.LeaderboardOptions options =
+                LeaderboardHologram.LeaderboardOptions.builder()
+                        .title("DEBUG HEADS")
+                        .maxDisplayEntries(3)
+                        .suffix("kills")
+                        // IMPORTANT: TOP_PLAYER_HEAD to get a single head entity
+                        .leaderboardType(LeaderboardHologram.LeaderboardType.TOP_PLAYER_HEAD)
+                        .headMode(LeaderboardHologram.HeadMode.ITEM_DISPLAY)
+                        .rotationMode(LeaderboardHologram.RotationMode.DYNAMIC)
+                        .showEmptyPlaces(true)
+                        .sortOrder(LeaderboardHologram.SortOrder.DESCENDING)
+                        .titleFormat("<yellow>DEBUG HEADS</yellow>")
+                        .footerFormat("<gray>────────────</gray>")
+                        .lineHeight(0.25)
+                        .background(true)
+                        .backgroundWidth(40f)
+                        .backgroundColor(0x20000000)
+                        .decimalNumbers(false)
+                        .build();
+
+        LeaderboardHologram lb = new LeaderboardHologram(options, "debug_heads");
+        hm.spawn(lb, loc);
+
+        Map<UUID, LeaderboardHologram.PlayerScore> data = new HashMap<>();
+        data.put(p.getUniqueId(), new LeaderboardHologram.PlayerScore(p.getName(), 42.0));
+        lb.setAllScores(data);
+        lb.update();
+
+        // ---- HologramLib internal introspection ----
+        this.getLogger().info("[CTC DEBUG] Spawned debug_heads at " + loc);
+
+        List<TextHologram> texts = lb.getAllTextHolograms();
+        this.getLogger().info("[CTC DEBUG] text holograms: " + texts.size());
+
+        var head = lb.getFirstPlaceHead();
+        this.getLogger().info("[CTC DEBUG] first place head hologram: " + head);
     }
 
     @Override
@@ -226,6 +316,8 @@ public final class Main extends JavaPlugin implements CommandExecutor, Listener 
                     send(p, "Unknown team: " + args[1] + ". Use red or blue.", ChatColor.RED);
                 }
                 return true;
+            } else if(args[0].equalsIgnoreCase("holo")) {
+                spawnHeadDebugBoard(p);
             }
         }
 
@@ -241,7 +333,8 @@ public final class Main extends JavaPlugin implements CommandExecutor, Listener 
             int maxDistance,
             boolean fire,
             boolean breaksBlocks,
-            boolean damagesAllies
+            boolean damagesAllies,
+            String ability
     ) {
         // 1) Clone the origin so we don't shift 'l' itself
         Location center = l.clone().add(0, 1, 0);
@@ -311,23 +404,12 @@ public final class Main extends JavaPlugin implements CommandExecutor, Listener 
                     + ", dist=" + String.format("%.2f", distance)
                     + ", factor=" + String.format("%.2f", damageFactor)
                     + " => damage=" + String.format("%.2f", damage));
-
             double newHealth = target.getHealth() - damage;
 
-            if (newHealth <= 0) {
-                // target dies → record the kill for *you*
-                Bukkit.broadcastMessage("[DEBUG] " + target.getName() + " would die (health after: " + newHealth + ")");
-                target.setHealth(0);
-                stats.recordKill(p);
-                Bukkit.broadcastMessage("[DEBUG] Recorded kill for " + p.getName());
-            } else {
-                // just hurt them
-                playerListener.tagLastDamager(target, p);
-                target.setHealth(newHealth);
-                Bukkit.broadcastMessage("[DEBUG] Damaged " + target.getName()
-                        + " down to " + String.format("%.2f", newHealth));
-            }
+            combatTracker.setHealth(target, newHealth, p, ability);
+
         }
+
     }
 
 
@@ -346,5 +428,9 @@ public final class Main extends JavaPlugin implements CommandExecutor, Listener 
 
     public StatsManager getStats() {
         return stats;
+    }
+
+    public HologramManager getHologramManager() {
+        return hologramManager;
     }
 }

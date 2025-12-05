@@ -129,45 +129,56 @@ public class Players extends DefaultListener {
         event.getBrokenItem().setDurability((short)3);
     }
 
-    // Maps victim UUID → the last time they were damaged by a player (with weapon info)
-    public final Map<UUID, DamageContext> lastDamager = new ConcurrentHashMap<>();
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onEntityHitTag(EntityDamageByEntityEvent event) {
+        if (!(event.getEntity() instanceof Player victim)) return;
 
-    // Holds the killer and what weapon they used
-    public record DamageContext(Player killer, WeaponType type, long time) {}
-    public enum WeaponType { SWORD, BOW, FISHING_ROD, FIREBALL, PEPPER, OTHER }
-    public void tagLastDamager(Player victim, Player killer) {
-        lastDamager.put(
-                victim.getUniqueId(),
-                new DamageContext(killer, WeaponType.OTHER, System.currentTimeMillis())
-        );
+        Player attacker = resolveAttacker(event.getDamager());
+        if (attacker == null || attacker.getUniqueId().equals(victim.getUniqueId())) return;
+
+        double finalDamage = event.getFinalDamage();
+        if (finalDamage <= 0) return;
+
+        String ability = resolveAbility(event, attacker);
+        main.combatTracker.tagDamage(victim, finalDamage, attacker, ability);
     }
+
+    private Player resolveAttacker(Entity damager) {
+        if (damager instanceof Player p) return p;
+
+        if (damager instanceof Projectile proj && proj.getShooter() instanceof Player shooter) {
+            return shooter;
+        }
+
+        return null;
+    }
+
+    private String resolveAbility(EntityDamageByEntityEvent event, Player attacker) {
+        Entity damager = event.getDamager();
+
+        // Projectiles
+        if (damager instanceof SpectralArrow) return "Spectral Arrow";
+        if (damager instanceof Arrow)         return "Bow";
+        if (damager instanceof Snowball)      return "Snowball";
+
+        // Melee – based on held item
+        if (damager instanceof Player) {
+            Material mat = attacker.getInventory().getItemInMainHand().getType();
+            if (mat.name().endsWith("_SWORD")) return "Sword";
+            if (mat.name().endsWith("_SHOVEL")) return "Shovel";
+            if (mat.name().endsWith("_HOE")) return "Hoe";
+            if (mat == Material.FISHING_ROD)   return "Fishing Rod";
+            if (mat == Material.STICK)         return "Cane";
+            if (mat == Material.BLAZE_ROD)     return "Classic Cane";
+        }
+
+        return "";
+    }
+
+
 
     @EventHandler
     public void onEntityHit(EntityDamageByEntityEvent event) {
-        if (event.getEntity() instanceof Player victim) {
-            Player killer = null;
-            WeaponType wt = WeaponType.OTHER;
-            Entity damager = event.getDamager();
-
-            // direct melee
-            if (damager instanceof Player dk) {
-                killer = dk;
-                Material mat = dk.getInventory().getItemInMainHand().getType();
-                if (mat.name().endsWith("_SWORD"))      wt = WeaponType.SWORD;
-                else if (mat == Material.FISHING_ROD)    wt = WeaponType.FISHING_ROD;
-                else                                     wt = WeaponType.OTHER;
-            }
-            // arrow shot
-            else if (damager instanceof Arrow arr && arr.getShooter() instanceof Player dk) {
-                killer = dk;
-                wt = WeaponType.BOW;
-            }
-
-            if (killer != null && !killer.getUniqueId().equals(victim.getUniqueId())) {
-                lastDamager.put(victim.getUniqueId(),
-                        new DamageContext(killer, wt, System.currentTimeMillis()));
-            }
-        }
         if(event.getDamager() instanceof SpectralArrow) {
             SpectralArrow arrow = (SpectralArrow) event.getDamager();
             event.setDamage(2.25);
@@ -189,23 +200,36 @@ public class Players extends DefaultListener {
             }
         }
 
-        if (event.getDamager() instanceof SmallFireball) {
+        if (event.getDamager() instanceof SmallFireball fireball) {
             event.setCancelled(true);
             Entity e = event.getEntity();
-            if (e instanceof Player) {
-                ((Player) e).damage(6.0);
+            if (e instanceof Player victim) {
+                Player shooter = null;
+                ProjectileSource src = fireball.getShooter();
+                if (src instanceof Player p) shooter = p;
+
+                double newHealth = victim.getHealth() - 6.0;
+                main.combatTracker.setHealth(victim, newHealth, shooter, "Fireball");
             }
         }
 
-        if (event.getDamager() instanceof ShulkerBullet) {
+
+        if (event.getDamager() instanceof ShulkerBullet bullet) {
             event.setCancelled(true);
             Entity e = event.getEntity();
-            if (e instanceof Player) {
-                ((Player) e).damage(0.4);
-                ((Player) e).setNoDamageTicks(0);
-                ((Player) e).addPotionEffect(new PotionEffect(PotionEffectType.GLOWING, 20 * 6, 1));
+            if (e instanceof Player victim) {
+                Player shooter = null;
+                ProjectileSource src = bullet.getShooter();
+                if (src instanceof Player p) shooter = p;
+
+                double newHealth = victim.getHealth() - 0.4;
+                main.combatTracker.setHealth(victim, newHealth, shooter, "Shulker Bullet");
+
+                victim.setNoDamageTicks(0);
+                victim.addPotionEffect(new PotionEffect(PotionEffectType.GLOWING, 20 * 6, 1));
             }
         }
+
         if (event.getDamager() instanceof Snowball)
             event.setDamage(1.2);
 
@@ -214,29 +238,21 @@ public class Players extends DefaultListener {
             Egg egg = (Egg) event.getDamager();
             ProjectileSource shooterSrc = egg.getShooter();
 
-            // If both shooter and victim are players, apply team check
-            if (event.getEntity() instanceof Player && shooterSrc instanceof Player) {
+            if (event.getEntity() instanceof Player && shooterSrc instanceof Player shooter) {
                 Player victim = (Player) event.getEntity();
-                Player shooter = (Player) shooterSrc;
 
                 boolean sameTeam = main.game.sameTeam(
                         victim.getUniqueId(),
                         shooter.getUniqueId()
                 );
 
-                if (sameTeam) {
-                    // same-team → just explosion effect
-                    victim.getWorld().createExplosion(victim.getLocation(), 2f, false, true);
-                } else {
-                    // enemy → subtract 7 HP, kill if ≤ 0
-                    double newHealth = victim.getHealth() - 8.5;
-                    if (newHealth > 0) {
-                        victim.setHealth(newHealth);
-                    } else {
-                        victim.setHealth(0.0);  // this will trigger a death
-                    }
-                    victim.getWorld().createExplosion(victim.getLocation(), 2f, false, true);
+                // Always do the explosion visual
+                victim.getWorld().createExplosion(victim.getLocation(), 2f, false, true);
 
+                if (!sameTeam) {
+                    // enemy → subtract HP via CombatTracker so kill is attributed
+                    double newHealth = victim.getHealth() - 8.5; // same as before
+                    main.combatTracker.setHealth(victim, newHealth, shooter, "direct hit grenade");
                 }
             } else {
                 // non-player victim or shooter → explosion only
@@ -251,6 +267,7 @@ public class Players extends DefaultListener {
             }
             return;
         }
+
         if (event.getDamager() instanceof Player p) {
             // on Cane (stick) hit
 //            main.broadcast("registered damaged");
@@ -349,59 +366,8 @@ public class Players extends DefaultListener {
     public void death(PlayerDeathEvent event) {
         Player victim = event.getEntity();
 
-        // 1) Record the death
-        main.getStats().recordDeath(victim);
+        main.combatTracker.onDeath(event);
 
-        // 2) Lookup & clear the last damager if within the last 10s
-        DamageContext ctx = lastDamager.remove(victim.getUniqueId());
-        Player killer = null;
-        WeaponType wt = null;
-        if (ctx != null && System.currentTimeMillis() - ctx.time() <= 10_000) {
-            killer = ctx.killer();
-            wt    = ctx.type();
-            // 3) Record the kill
-            main.getStats().recordKill(killer);
-        }
-
-        // 4) Build a custom message
-        String msg;
-        EntityDamageEvent causeEvt = victim.getLastDamageCause();
-
-        if (killer != null) {
-            // PvP kill
-            switch (wt) {
-                case SWORD       -> msg = killer.getName() + " viciously slashed "   + victim.getName() + "!";
-                case BOW         -> msg = killer.getName() + " sniped "               + victim.getName() + " from afar!";
-                case FISHING_ROD -> msg = killer.getName() + " reeled in "             + victim.getName() + " like a fish!";
-                default          -> msg = killer.getName() + " eliminated "            + victim.getName() + "!";
-            }
-        } else if (causeEvt != null) {
-            // Environmental or knock-off attribution
-            switch (causeEvt.getCause()) {
-                case VOID                      -> msg = (ctx != null
-                        ? ctx.killer().getName() + " knocked " + victim.getName() + " into the void!"
-                        : victim.getName() + " fell into the void.");
-                case FALL                      -> msg = (ctx != null
-                        ? ctx.killer().getName() + " sent "   + victim.getName() + " plummeting!"
-                        : victim.getName() + " hit the ground too hard.");
-                case LAVA                      -> msg = victim.getName() + " tried to swim in lava.";
-                case DROWNING                  -> msg = victim.getName() + " forgot how to swim.";
-                case FIRE, FIRE_TICK           -> msg = victim.getName() + " was burned to a crisp.";
-                case ENTITY_EXPLOSION,
-                        BLOCK_EXPLOSION           -> msg = victim.getName() + " got blown up.";
-                case LIGHTNING                 -> msg = victim.getName() + " was struck by lightning.";
-                default                        -> msg = victim.getName() + " died mysteriously.";
-            }
-        } else {
-            // Fallback
-            msg = victim.getName() + " died.";
-        }
-
-        // 5) Broadcast & suppress the default message
-        event.setDeathMessage("");
-        main.broadcast(msg);
-        // 6) Cleanup drops & kit state
-        event.getDrops().clear();
         Kit kitObj = kit.kits.remove(victim.getUniqueId());
         if (kitObj != null) {
             kitObj.cancelAllCooldowns();

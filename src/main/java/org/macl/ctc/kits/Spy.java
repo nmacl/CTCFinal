@@ -91,7 +91,7 @@ public class Spy extends Kit {
                 return;
             }
             if(timer == 35) {
-                main.fakeExplode(p, getDetonate(), 18, 6, true, false,true);
+                main.fakeExplode(p, getDetonate(), 18, 6, true, false,true, "spy");
                 p.getWorld().createExplosion(getDetonate(), 2f, false, true);
                 this.cancel();
                 detonate = null;

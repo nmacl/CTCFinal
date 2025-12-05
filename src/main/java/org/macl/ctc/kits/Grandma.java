@@ -168,7 +168,7 @@ public class Grandma extends Kit {
             p.setNoDamageTicks(0);
         }
 
-        main.fakeExplode(p,p.getLocation(),0,1,false,false,false);
+        main.fakeExplode(p,p.getLocation(),0,1,false,false,false, "cane");
 
     }
 
@@ -237,7 +237,7 @@ public class Grandma extends Kit {
         }
 
         public void blowUp() {
-            main.fakeExplode(p,p.getLocation().add(0.0,1.0,0.0),14,4,true,true,true);
+            main.fakeExplode(p,p.getLocation().add(0.0,1.0,0.0),14,4,true,true,true, "scooter");
 
             scooter.remove();
             cleanScooterHotbar();
@@ -274,7 +274,7 @@ public class Grandma extends Kit {
             scooterEntity.removePassenger(scooterEntity.getPassengers().get(0));
         }
 
-        main.fakeExplode(p,p.getLocation().add(0.0,1.0,0.0),18,6,false,true,true);
+        main.fakeExplode(p,p.getLocation().add(0.0,1.0,0.0),18,6,false,true,true, "scooter");
         p.getWorld().createExplosion(p.getLocation(), 3f, false, true);
     }
 }

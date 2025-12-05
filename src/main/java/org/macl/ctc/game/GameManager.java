@@ -748,13 +748,15 @@ public class GameManager {
         String centerControl = centerString(redCount, blueCount);
 
         // Set scores with center control first, and core health below
-        objective.getScore(" ").setScore(7); // Blank line for spacing
-        objective.getScore(centerStatus).setScore(6);
-        objective.getScore(centerControl).setScore(5);
-        objective.getScore("  ").setScore(4); // Another blank line
-        objective.getScore(coreHealthHeader).setScore(3);
-        objective.getScore(blueCore).setScore(2);
-        objective.getScore(redCore).setScore(1);
+        objective.getScore(" ").setScore(8); // Blank line for spacing
+        objective.getScore(centerStatus).setScore(7);
+        objective.getScore(centerControl).setScore(6);
+        objective.getScore("  ").setScore(5); // Another blank line
+        objective.getScore(coreHealthHeader).setScore(4);
+        objective.getScore(blueCore).setScore(3);
+        objective.getScore(redCore).setScore(2);
+        objective.getScore("   ").setScore(1); // Blank line before IP
+        objective.getScore(ChatColor.GOLD + "" + ChatColor.BOLD + "playctc.co").setScore(0); // Server IP
     }
 
     // Override method that only updates the core health
@@ -779,10 +781,12 @@ public class GameManager {
         String redCore = ChatColor.RED + "Red: " + heartString(redCoreHealth);
 
         // Update the scores for core health without modifying the center control
-        objective.getScore("  ").setScore(4); // Ensure this blank line remains
-        objective.getScore(coreHealthHeader).setScore(3);
-        objective.getScore(blueCore).setScore(2);
-        objective.getScore(redCore).setScore(1);
+        objective.getScore("  ").setScore(5); // Ensure this blank line remains
+        objective.getScore(coreHealthHeader).setScore(4);
+        objective.getScore(blueCore).setScore(3);
+        objective.getScore(redCore).setScore(2);
+        objective.getScore("   ").setScore(1); // Blank line before IP
+        objective.getScore(ChatColor.GOLD + "" + ChatColor.BOLD + "playctc.co").setScore(0); // Server IP
     }
 
 

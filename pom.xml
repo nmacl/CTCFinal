@@ -30,6 +30,11 @@
             <id>sonatype</id>
             <url>https://oss.sonatype.org/content/groups/public/</url>
         </repository>
+        <!-- JitPack for HologramLib -->
+        <repository>
+            <id>jitpack.io</id>
+            <url>https://jitpack.io</url>
+        </repository>
     </repositories>
 
     <dependencies>
@@ -42,13 +47,32 @@
             <scope>provided</scope>
         </dependency>
 
-        <!-- 2) DecentHolograms from your libs/ folder -->
+        <!-- 2) HologramLib -->
         <dependency>
-            <groupId>eu.decentsoftware</groupId>
-            <artifactId>DecentHolograms</artifactId>
-            <version>2.9.1</version>
-            <scope>system</scope>
-            <systemPath>${project.basedir}/libs/DecentHolograms-2.9.1.jar</systemPath>
+            <groupId>com.github.HologramLib</groupId>
+            <artifactId>HologramLib</artifactId>
+            <version>1.8.3.2</version>
+            <scope>provided</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>com.tcoded</groupId>
+                    <artifactId>FoliaLib</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+
+        <!-- 3) HikariCP connection pool -->
+        <dependency>
+            <groupId>com.zaxxer</groupId>
+            <artifactId>HikariCP</artifactId>
+            <version>5.1.0</version>
+        </dependency>
+
+        <!-- 4) MySQL Connector -->
+        <dependency>
+            <groupId>com.mysql</groupId>
+            <artifactId>mysql-connector-j</artifactId>
+            <version>8.2.0</version>
         </dependency>
 
     </dependencies>
@@ -131,6 +155,43 @@
                                       verbose="true"/>
                                 <echo message="Successfully copied to SERVER23/plugins/"/>
                             </target>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!-- Shade HikariCP and MySQL to avoid conflicts -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-shade-plugin</artifactId>
+                <version>3.5.1</version>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>shade</goal>
+                        </goals>
+                        <configuration>
+                            <relocations>
+                                <relocation>
+                                    <pattern>com.zaxxer.hikari</pattern>
+                                    <shadedPattern>org.macl.ctc.libs.hikari</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>com.mysql</pattern>
+                                    <shadedPattern>org.macl.ctc.libs.mysql</shadedPattern>
+                                </relocation>
+                            </relocations>
+                            <filters>
+                                <filter>
+                                    <artifact>*:*</artifact>
+                                    <excludes>
+                                        <exclude>META-INF/*.SF</exclude>
+                                        <exclude>META-INF/*.DSA</exclude>
+                                        <exclude>META-INF/*.RSA</exclude>
+                                    </excludes>
+                                </filter>
+                            </filters>
                         </configuration>
                     </execution>
                 </executions>

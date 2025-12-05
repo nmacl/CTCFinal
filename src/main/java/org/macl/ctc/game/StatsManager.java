@@ -15,18 +15,22 @@ public class StatsManager {
             int wins,
             int captures,
             int coreCracks,
-            int gamesPlayed
+            int gamesPlayed,
+            int damageDealt,
+            int damageTaken
     ) {}
 
     private final ConcurrentMap<UUID,PlayerStats> stats = new ConcurrentHashMap<>();
 
     // ── Core recorders ───────────────────────────────────────────────────────
-    public void recordKill(UUID id)      { modify(id, old -> new PlayerStats(old.kills()+1, old.deaths(), old.wins(), old.captures(), old.coreCracks(), old.gamesPlayed())); }
-    public void recordDeath(UUID id)     { modify(id, old -> new PlayerStats(old.kills(), old.deaths()+1, old.wins(), old.captures(), old.coreCracks(), old.gamesPlayed())); }
-    public void recordWin(UUID id)       { modify(id, old -> new PlayerStats(old.kills(), old.deaths(), old.wins()+1, old.captures(), old.coreCracks(), old.gamesPlayed())); }
-    public void recordCapture(UUID id)   { modify(id, old -> new PlayerStats(old.kills(), old.deaths(), old.wins(), old.captures()+1, old.coreCracks(), old.gamesPlayed())); }
-    public void recordCoreCrack(UUID id) { modify(id, old -> new PlayerStats(old.kills(), old.deaths(), old.wins(), old.captures(), old.coreCracks()+1, old.gamesPlayed())); }
-    public void recordGamePlayed(UUID id){ modify(id, old -> new PlayerStats(old.kills(), old.deaths(), old.wins(), old.captures(), old.coreCracks(), old.gamesPlayed()+1)); }
+    public void recordKill(UUID id)      { modify(id, old -> new PlayerStats(old.kills()+1, old.deaths(), old.wins(), old.captures(), old.coreCracks(), old.gamesPlayed(), old.damageDealt(), old.damageTaken())); }
+    public void recordDeath(UUID id)     { modify(id, old -> new PlayerStats(old.kills(), old.deaths()+1, old.wins(), old.captures(), old.coreCracks(), old.gamesPlayed(), old.damageDealt(), old.damageTaken())); }
+    public void recordWin(UUID id)       { modify(id, old -> new PlayerStats(old.kills(), old.deaths(), old.wins()+1, old.captures(), old.coreCracks(), old.gamesPlayed(), old.damageDealt(), old.damageTaken())); }
+    public void recordCapture(UUID id)   { modify(id, old -> new PlayerStats(old.kills(), old.deaths(), old.wins(), old.captures()+1, old.coreCracks(), old.gamesPlayed(), old.damageDealt(), old.damageTaken())); }
+    public void recordCoreCrack(UUID id) { modify(id, old -> new PlayerStats(old.kills(), old.deaths(), old.wins(), old.captures(), old.coreCracks()+1, old.gamesPlayed(), old.damageDealt(), old.damageTaken())); }
+    public void recordGamePlayed(UUID id){ modify(id, old -> new PlayerStats(old.kills(), old.deaths(), old.wins(), old.captures(), old.coreCracks(), old.gamesPlayed()+1, old.damageDealt(), old.damageTaken())); }
+    public void recordDamage(UUID id, int amount)     { modify(id, old -> new PlayerStats(old.kills(), old.deaths(), old.wins(), old.captures(), old.coreCracks(), old.gamesPlayed(), old.damageDealt()+amount, old.damageTaken())); }
+    public void recordDamageTaken(UUID id, int amount){ modify(id, old -> new PlayerStats(old.kills(), old.deaths(), old.wins(), old.captures(), old.coreCracks(), old.gamesPlayed(), old.damageDealt(), old.damageTaken()+amount)); }
 
     // ── Convenience overloads ────────────────────────────────────────────────
     public void recordKill(Player p)      { recordKill(p.getUniqueId()); }
@@ -43,14 +47,24 @@ public class StatsManager {
     private void modify(UUID id, UnaryOperator<PlayerStats> op) {
         stats.compute(id, (__, old) -> {
             PlayerStats base = old==null
-                    ? new PlayerStats(0,0,0,0,0,0)
+                    ? new PlayerStats(0,0,0,0,0,0,0,0)
                     : old;
             return op.apply(base);
         });
     }
 
     public PlayerStats get(UUID id) {
-        return stats.getOrDefault(id, new PlayerStats(0,0,0,0,0,0));
+        return stats.getOrDefault(id, new PlayerStats(0,0,0,0,0,0,0,0));
+    }
+
+    /** Set a player's stats directly (useful for merging) */
+    public void set(UUID id, PlayerStats playerStats) {
+        stats.put(id, playerStats);
+    }
+
+    /** Get all stats entries for iteration */
+    public java.util.Set<java.util.Map.Entry<UUID, PlayerStats>> entrySet() {
+        return stats.entrySet();
     }
 
     // ── Persistence ─────────────────────────────────────────────────────────
@@ -65,7 +79,9 @@ public class StatsManager {
                     cfg.getInt(base+"wins",0),
                     cfg.getInt(base+"captures",0),
                     cfg.getInt(base+"coreCracks",0),
-                    cfg.getInt(base+"gamesPlayed",0)
+                    cfg.getInt(base+"gamesPlayed",0),
+                    cfg.getInt(base+"damageDealt",0),
+                    cfg.getInt(base+"damageTaken",0)
             ));
         }
     }
@@ -80,6 +96,8 @@ public class StatsManager {
             cfg.set(base+"captures",    ps.captures());
             cfg.set(base+"coreCracks",  ps.coreCracks());
             cfg.set(base+"gamesPlayed", ps.gamesPlayed());
+            cfg.set(base+"damageDealt", ps.damageDealt());
+            cfg.set(base+"damageTaken", ps.damageTaken());
         }
     }
 }
